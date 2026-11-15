@@ -125,35 +125,31 @@
   <script>
     let db = null, config = null;
     
-    // 1. Load Database (Exact Path: datas/database.json)
-    async function loadDB() {
-      const githubRawUrl = `https://raw.githubusercontent.com/modulosager/Modulos-Agency-/main/datas/database.json?t=` + Date.now();
-      
-      try {
-        const res = await fetch(githubRawUrl);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.admin) return data; 
-        }
-      } catch(e) { console.error(e); }
-      return null;
-    }
-
-    // 2. App Start
+    // 1. Load Database (Direct GitHub API - No CORS issues)
     async function init() {
-      db = await loadDB();
-      if (db) {
-        config = db.admin;
-        document.getElementById('notif').style.display = 'none';
-      } else {
+      try {
+        const res = await fetch(`https://api.github.com/repos/modulosager/Modulos-Agency-/contents/datas/database.json?t=` + Date.now(), {
+          headers: { 'Accept': 'application/vnd.github.v3+json' }
+        });
+        
+        if (res.ok) {
+          const fileData = await res.json();
+          const decodedContent = decodeURIComponent(escape(atob(fileData.content)));
+          db = JSON.parse(decodedContent);
+          config = db.admin;
+          document.getElementById('notif').style.display = 'none';
+        } else {
+          throw new Error("API Fetch failed");
+        }
+      } catch(e) { 
         document.getElementById('notif').className = 'notif error';
-        document.getElementById('notif').innerText = 'Error: datas/database.json nahi mili. Check if file exists.';
+        document.getElementById('notif').innerText = 'Error: datas/database.json nahi mili.';
         document.getElementById('notif').style.display = 'block';
       }
     }
     init();
 
-    // 3. Login Logic
+    // 2. Login Logic
     function doLogin() {
       if (!config) return alert('Database load nahi hui. Page refresh karein.');
       if (document.getElementById('u').value === config.username && document.getElementById('p').value === config.password) {
@@ -166,7 +162,7 @@
       }
     }
 
-    // 4. Helper: Image to Base64
+    // 3. Helper: Image to Base64
     function getBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -176,9 +172,7 @@
       });
     }
 
-    // ==========================================
-    // 5. MAIN GENERATOR ENGINE
-    // ==========================================
+    // 4. MAIN GENERATOR ENGINE
     async function generatePage() {
       const btn = document.getElementById('saveBtn');
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
@@ -208,37 +202,31 @@
       const headers = { 'Authorization': `token ${config.github_token}`, 'Accept': 'application/vnd.github.v3+json' };
 
       try {
-        // A. Upload Logo (Agar upload kiya hai)
+        // A. Upload Logo
         if(logoFile) {
           const base64Logo = await getBase64(logoFile);
           const logoUrl = `${baseApi}/nfcbusinesscp/${id}/logo.png`;
-          
           let sha = null;
           const checkRes = await fetch(logoUrl, { headers });
           if(checkRes.ok) sha = (await checkRes.json()).sha;
 
           await fetch(logoUrl, {
             method: 'PUT', headers,
-            body: JSON.stringify({ 
-              message: `Upload Logo for ${id}`, 
-              content: base64Logo,
-              ...(sha && { sha })
-            })
+            body: JSON.stringify({ message: `Logo for ${id}`, content: base64Logo, ...(sha && { sha }) })
           });
         }
 
-        // B. Fetch Master Template
+        // B. Fetch Template
         let templateRes = await fetch('/template.html?t=' + Date.now());
         if(!templateRes.ok) templateRes = await fetch('../template.html?t=' + Date.now());
         let html = await templateRes.text();
 
-        // C. Generate Buttons HTML
+        // C. Prepare Buttons
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
         const mapsBtn = maps ? `<a href="${maps}" class="btn btn-map" target="_blank"><i class="fas fa-map-marker-alt"></i> Maps</a>` : '';
         const webBtn = web ? `<a href="${web}" class="btn btn-web" target="_blank"><i class="fas fa-globe"></i> Website</a>` : '';
-        
         let socialLinks = '';
         if(insta) socialLinks += `<a href="${insta}" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>`;
         if(fb) socialLinks += `<a href="${fb}" class="social-icon" target="_blank"><i class="fab fa-facebook-f"></i></a>`;
@@ -254,23 +242,18 @@
                    .replace(/{{WEB_BTN}}/g, webBtn)
                    .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
 
-        // E. Save Index.html to GitHub
+        // E. Save index.html
         const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
-        
         let pageSha = null;
         const checkPage = await fetch(pageUrl, { headers });
         if(checkPage.ok) pageSha = (await checkPage.json()).sha;
 
         await fetch(pageUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ 
-            message: `Generate Page for ${id}`, 
-            content: btoa(unescape(encodeURIComponent(html))),
-            ...(pageSha && { sha: pageSha })
-          })
+          body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
         });
 
-        // F. Update Master JSON Database
+        // F. Update Database
         const dbUrl = `${baseApi}/datas/database.json`;
         const dbRes = await fetch(dbUrl, { headers });
         const dbData = await dbRes.json();
