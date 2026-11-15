@@ -35,7 +35,6 @@
 <body>
 
   <div class="container">
-    <!-- Login Card -->
     <div class="card" id="loginCard">
       <h2><i class="fas fa-lock"></i> Admin Login</h2>
       <div id="notif" class="notif"></div>
@@ -50,27 +49,16 @@
       <button onclick="doLogin()">Sign In</button>
     </div>
 
-    <!-- Generator Card -->
     <div class="card" id="addCard" style="display: none;">
       <h2><i class="fas fa-magic"></i> Generate Business Page</h2>
       <div id="notif2" class="notif"></div>
       
       <div class="row">
-        <div class="form-group">
-          <label>Business ID *</label>
-          <input type="text" id="bizId" placeholder="e.g. 8383">
-        </div>
-        <div class="form-group">
-          <label>Business Name *</label>
-          <input type="text" id="bizName" placeholder="e.g. Cafe Coffee Day">
-        </div>
+        <div class="form-group"><label>Business ID *</label><input type="text" id="bizId" placeholder="e.g. 8383"></div>
+        <div class="form-group"><label>Business Name *</label><input type="text" id="bizName" placeholder="e.g. Cafe Coffee Day"></div>
       </div>
       
-      <div class="form-group">
-        <label>Description</label>
-        <input type="text" id="bizDesc" placeholder="Short description...">
-      </div>
-
+      <div class="form-group"><label>Description</label><input type="text" id="bizDesc" placeholder="Short description..."></div>
       <div class="form-group">
         <label>Upload Logo *</label>
         <div class="file-input-wrapper">
@@ -79,45 +67,19 @@
           <div id="fileName" style="font-size: 0.8rem; color: #94a3b8; margin-top: 8px;"></div>
         </div>
       </div>
-
-      <div class="form-group">
-        <label>Google Review Link</label>
-        <input type="text" id="bizRev" placeholder="https://g.page/r/...">
-      </div>
-
+      <div class="form-group"><label>Google Review Link</label><input type="text" id="bizRev" placeholder="https://g.page/r/..."></div>
       <div class="row">
-        <div class="form-group">
-          <label>Phone Number</label>
-          <input type="text" id="bizPhone" placeholder="+91...">
-        </div>
-        <div class="form-group">
-          <label>WhatsApp Number</label>
-          <input type="text" id="bizWa" placeholder="+91...">
-        </div>
+        <div class="form-group"><label>Phone Number</label><input type="text" id="bizPhone" placeholder="+91..."></div>
+        <div class="form-group"><label>WhatsApp Number</label><input type="text" id="bizWa" placeholder="+91..."></div>
       </div>
-
       <div class="row">
-        <div class="form-group">
-          <label>Google Maps Link</label>
-          <input type="text" id="bizMaps" placeholder="https://maps.google.com/...">
-        </div>
-        <div class="form-group">
-          <label>Website Link</label>
-          <input type="text" id="bizWeb" placeholder="https://...">
-        </div>
+        <div class="form-group"><label>Google Maps Link</label><input type="text" id="bizMaps" placeholder="https://maps.google.com/..."></div>
+        <div class="form-group"><label>Website Link</label><input type="text" id="bizWeb" placeholder="https://..."></div>
       </div>
-
       <div class="row">
-        <div class="form-group">
-          <label>Instagram Link</label>
-          <input type="text" id="bizInsta" placeholder="https://instagram.com/...">
-        </div>
-        <div class="form-group">
-          <label>Facebook Link</label>
-          <input type="text" id="bizFb" placeholder="https://facebook.com/...">
-        </div>
+        <div class="form-group"><label>Instagram Link</label><input type="text" id="bizInsta" placeholder="https://instagram.com/..."></div>
+        <div class="form-group"><label>Facebook Link</label><input type="text" id="bizFb" placeholder="https://facebook.com/..."></div>
       </div>
-
       <button onclick="generatePage()" id="saveBtn"><i class="fas fa-rocket"></i> Generate Page & Upload</button>
     </div>
   </div>
@@ -125,13 +87,11 @@
   <script>
     let db = null, config = null;
     
-    // 1. Load Database (Direct GitHub API - No CORS issues)
+    // Yahan API se data fetch ho raha hai (Bina CORS error ke)
     async function init() {
+      const url = `https://api.github.com/repos/modulosager/Modulos-Agency-/contents/datas/database.json?t=` + Date.now();
       try {
-        const res = await fetch(`https://api.github.com/repos/modulosager/Modulos-Agency-/contents/datas/database.json?t=` + Date.now(), {
-          headers: { 'Accept': 'application/vnd.github.v3+json' }
-        });
-        
+        const res = await fetch(url);
         if (res.ok) {
           const fileData = await res.json();
           const decodedContent = decodeURIComponent(escape(atob(fileData.content)));
@@ -139,17 +99,18 @@
           config = db.admin;
           document.getElementById('notif').style.display = 'none';
         } else {
-          throw new Error("API Fetch failed");
+          document.getElementById('notif').className = 'notif error';
+          document.getElementById('notif').innerText = 'Error: File nahi mili. Make sure GitHub Pages is on.';
+          document.getElementById('notif').style.display = 'block';
         }
       } catch(e) { 
         document.getElementById('notif').className = 'notif error';
-        document.getElementById('notif').innerText = 'Error: datas/database.json nahi mili.';
+        document.getElementById('notif').innerText = 'Error loading file. Check internet.';
         document.getElementById('notif').style.display = 'block';
       }
     }
     init();
 
-    // 2. Login Logic
     function doLogin() {
       if (!config) return alert('Database load nahi hui. Page refresh karein.');
       if (document.getElementById('u').value === config.username && document.getElementById('p').value === config.password) {
@@ -162,7 +123,6 @@
       }
     }
 
-    // 3. Helper: Image to Base64
     function getBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -172,7 +132,6 @@
       });
     }
 
-    // 4. MAIN GENERATOR ENGINE
     async function generatePage() {
       const btn = document.getElementById('saveBtn');
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
@@ -188,7 +147,6 @@
       const web = document.getElementById('bizWeb').value;
       const insta = document.getElementById('bizInsta').value;
       const fb = document.getElementById('bizFb').value;
-      
       const logoFile = document.getElementById('bizLogoFile').files[0];
 
       if(!id || !name) {
@@ -202,26 +160,22 @@
       const headers = { 'Authorization': `token ${config.github_token}`, 'Accept': 'application/vnd.github.v3+json' };
 
       try {
-        // A. Upload Logo
         if(logoFile) {
           const base64Logo = await getBase64(logoFile);
           const logoUrl = `${baseApi}/nfcbusinesscp/${id}/logo.png`;
           let sha = null;
           const checkRes = await fetch(logoUrl, { headers });
           if(checkRes.ok) sha = (await checkRes.json()).sha;
-
           await fetch(logoUrl, {
             method: 'PUT', headers,
             body: JSON.stringify({ message: `Logo for ${id}`, content: base64Logo, ...(sha && { sha }) })
           });
         }
 
-        // B. Fetch Template
-        let templateRes = await fetch('/template.html?t=' + Date.now());
+        let templateRes = await fetch('template.html?t=' + Date.now());
         if(!templateRes.ok) templateRes = await fetch('../template.html?t=' + Date.now());
         let html = await templateRes.text();
 
-        // C. Prepare Buttons
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
@@ -231,7 +185,6 @@
         if(insta) socialLinks += `<a href="${insta}" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>`;
         if(fb) socialLinks += `<a href="${fb}" class="social-icon" target="_blank"><i class="fab fa-facebook-f"></i></a>`;
 
-        // D. Replace Placeholders
         html = html.replace(/{{NAME}}/g, name)
                    .replace(/{{DESC}}/g, desc || 'Welcome to our business.')
                    .replace(/{{LOGO}}/g, 'logo.png')
@@ -242,7 +195,6 @@
                    .replace(/{{WEB_BTN}}/g, webBtn)
                    .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
 
-        // E. Save index.html
         const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
         let pageSha = null;
         const checkPage = await fetch(pageUrl, { headers });
@@ -253,7 +205,6 @@
           body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
         });
 
-        // F. Update Database
         const dbUrl = `${baseApi}/datas/database.json`;
         const dbRes = await fetch(dbUrl, { headers });
         const dbData = await dbRes.json();
@@ -265,11 +216,7 @@
 
         await fetch(dbUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ 
-            message: `Update DB for ${id}`, 
-            content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), 
-            sha: dbData.sha 
-          })
+          body: JSON.stringify({ message: `Update DB for ${id}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), sha: dbData.sha })
         });
 
         showNotif('notif2', 'success', `Success! Page generated for ID: ${id}`);
