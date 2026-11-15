@@ -126,24 +126,18 @@
     let db = null, config = null;
     
     // ==========================================
-    // SMART DATABASE LOADER (CORS aur Paths handle karega)
+    // LOAD DATABASE (Exact GitHub Path)
     // ==========================================
     async function loadDB() {
-      const paths = [
-        '../json/database.json', 
-        '/json/database.json',
-        '../../json/database.json'
-      ];
+      const githubRawUrl = `https://raw.githubusercontent.com/modulosager/Modulos-Agency-/main/datas/database.json?t=` + Date.now();
       
-      for (let path of paths) {
-        try {
-          const res = await fetch(path + '?t=' + Date.now());
-          if (res.ok) {
-            const data = await res.json();
-            if (data && data.admin) return data; 
-          }
-        } catch(e) {}
-      }
+      try {
+        const res = await fetch(githubRawUrl);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.admin) return data; 
+        }
+      } catch(e) { console.error(e); }
       return null;
     }
 
@@ -155,7 +149,7 @@
         document.getElementById('notif').style.display = 'none';
       } else {
         document.getElementById('notif').className = 'notif error';
-        document.getElementById('notif').innerText = 'Error: database.json nahi mili. Check karein ki file json folder mein hai.';
+        document.getElementById('notif').innerText = 'Error: datas/database.json nahi mili. Path check karein.';
         document.getElementById('notif').style.display = 'block';
       }
     }
@@ -174,7 +168,6 @@
       }
     }
 
-    // Helper: Image to Base64
     function getBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -185,7 +178,7 @@
     }
 
     // ==========================================
-    // MAIN GENERATOR ENGINE
+    // GENERATOR ENGINE
     // ==========================================
     async function generatePage() {
       const btn = document.getElementById('saveBtn');
@@ -216,42 +209,35 @@
       const headers = { 'Authorization': `token ${config.github_token}`, 'Accept': 'application/vnd.github.v3+json' };
 
       try {
-        // 1. Upload Logo (Agar upload kiya hai)
+        // 1. Logo Upload
         if(logoFile) {
           const base64Logo = await getBase64(logoFile);
           const logoUrl = `${baseApi}/nfcbusinesscp/${id}/logo.png`;
-          
           let sha = null;
           const checkRes = await fetch(logoUrl, { headers });
           if(checkRes.ok) sha = (await checkRes.json()).sha;
 
           await fetch(logoUrl, {
             method: 'PUT', headers,
-            body: JSON.stringify({ 
-              message: `Upload Logo for ${id}`, 
-              content: base64Logo,
-              ...(sha && { sha })
-            })
+            body: JSON.stringify({ message: `Logo for ${id}`, content: base64Logo, ...(sha && { sha }) })
           });
         }
 
-        // 2. Fetch Master Template
+        // 2. Template Fetch
         let templateRes = await fetch('/template.html?t=' + Date.now());
         if(!templateRes.ok) templateRes = await fetch('../template.html?t=' + Date.now());
         let html = await templateRes.text();
 
-        // 3. Generate Buttons HTML
+        // 3. Generate HTML Content
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
         const mapsBtn = maps ? `<a href="${maps}" class="btn btn-map" target="_blank"><i class="fas fa-map-marker-alt"></i> Maps</a>` : '';
         const webBtn = web ? `<a href="${web}" class="btn btn-web" target="_blank"><i class="fas fa-globe"></i> Website</a>` : '';
-        
         let socialLinks = '';
         if(insta) socialLinks += `<a href="${insta}" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>`;
         if(fb) socialLinks += `<a href="${fb}" class="social-icon" target="_blank"><i class="fab fa-facebook-f"></i></a>`;
 
-        // 4. Replace Placeholders
         html = html.replace(/{{NAME}}/g, name)
                    .replace(/{{DESC}}/g, desc || 'Welcome to our business.')
                    .replace(/{{LOGO}}/g, 'logo.png')
@@ -262,25 +248,19 @@
                    .replace(/{{WEB_BTN}}/g, webBtn)
                    .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
 
-        // 5. Save Index.html to GitHub
+        // 4. Save index.html
         const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
-        
         let pageSha = null;
         const checkPage = await fetch(pageUrl, { headers });
         if(checkPage.ok) pageSha = (await checkPage.json()).sha;
 
         await fetch(pageUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ 
-            message: `Generate Page for ${id}`, 
-            content: btoa(unescape(encodeURIComponent(html))),
-            ...(pageSha && { sha: pageSha })
-          })
+          body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
         });
 
-        // 6. Update Master JSON Database
-        const dbPath = db.admin.github_db_path || 'json/database.json'; // fallback path
-        const dbUrl = `${baseApi}/${dbPath}`;
+        // 5. Save to datas/database.json
+        const dbUrl = `${baseApi}/datas/database.json`;
         const dbRes = await fetch(dbUrl, { headers });
         const dbData = await dbRes.json();
         
@@ -291,11 +271,7 @@
 
         await fetch(dbUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ 
-            message: `Update DB for ${id}`, 
-            content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), 
-            sha: dbData.sha 
-          })
+          body: JSON.stringify({ message: `Update DB for ${id}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), sha: dbData.sha })
         });
 
         showNotif('notif2', 'success', `Success! Page generated for ID: ${id}`);
