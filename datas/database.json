@@ -6,5 +6,17 @@
     "github_owner": "modulosager",
     "github_repo": "Modulos-Agency-"
   },
-  "businesses": []
+  "businesses": [
+    {
+      "id": "92",
+      "name": "Test",
+      "phone": "673737",
+      "wa": "727277",
+      "rev": "Modulos.in",
+      "maps": "Modulos.in",
+      "web": "Modulos.in",
+      "insta": "Modulos.in",
+      "fb": "Modulos.in"
+    }
+  ]
 }
