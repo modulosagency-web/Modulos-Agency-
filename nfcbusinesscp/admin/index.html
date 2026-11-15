@@ -3,249 +3,303 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modulos Admin - Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Modulos Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    :root {
-      --primary: #0047b3;
-      --primary-dark: #003385;
-      --bg-dark: #0f172a;
-      --bg-card: #1e293b;
-      --text-light: #f8fafc;
-      --text-muted: #94a3b8;
-      --border: #334155;
-      --danger: #ef4444;
-      --success: #10b981;
-    }
-    body { font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-light); min-height: 100vh; display: flex; flex-direction: column; }
-    
-    /* Header */
-    .header { background: var(--bg-card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); }
-    .logo { font-size: 1.2rem; font-weight: 800; display: flex; align-items: center; gap: 10px; }
-    .logo i { color: var(--primary); font-size: 1.5rem; }
-    
-    /* Container */
-    .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; width: 100%; flex: 1; }
-    
-    /* Stats */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-    .stat-card { background: var(--bg-card); padding: 20px; border-radius: 12px; border: 1px solid var(--border); }
-    .stat-title { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 8px; }
-    .stat-value { font-size: 2rem; font-weight: 800; color: var(--primary); }
-    
-    /* Buttons */
-    .btn { padding: 10px 20px; border-radius: 8px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; font-size: 0.9rem; transition: 0.2s; display: inline-flex; align-items: center; gap: 8px; }
-    .btn-primary { background: var(--primary); color: white; }
-    .btn-primary:hover { background: var(--primary-dark); }
-    .btn-danger { background: var(--danger); color: white; }
-    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-light); }
-    
-    /* Form */
-    .card { background: var(--bg-card); border-radius: 12px; padding: 25px; border: 1px solid var(--border); margin-bottom: 20px; }
-    .card h2 { font-size: 1.2rem; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 10px; }
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 15px; }
-    .form-group label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; }
-    .form-group input, .form-group textarea { width: 100%; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-dark); color: var(--text-light); font-family: inherit; }
-    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
-    
-    /* Table/List */
-    .list-item { display: flex; align-items: center; justify-content: space-between; padding: 15px; background: var(--bg-dark); border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--border); }
-    .list-item .info { display: flex; align-items: center; gap: 15px; }
-    .list-item img { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
-    .list-item .name { font-weight: 600; }
-    .list-item .id { font-size: 0.8rem; color: var(--text-muted); }
-    
-    /* Login Screen */
-    .login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg-dark); padding: 20px; }
-    .login-box { background: var(--bg-card); padding: 40px; border-radius: 16px; width: 100%; max-width: 400px; border: 1px solid var(--border); text-align: center; }
-    .login-box i { font-size: 3rem; color: var(--primary); margin-bottom: 20px; }
-    .login-box h1 { margin-bottom: 30px; }
-    
-    /* Notification */
-    .notif { padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 0.9rem; display: none; }
-    .notif.error { background: rgba(239, 68, 68, 0.1); color: var(--danger); border: 1px solid var(--danger); }
-    .notif.success { background: rgba(16, 185, 129, 0.1); color: var(--success); border: 1px solid var(--success); }
-
-    @media (max-width: 768px) { .form-grid { grid-template-columns: 1fr; } }
+    body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; min-height: 100vh; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; font-size: 0.9rem; }
+    .btn-primary { background: #0047b3; color: white; }
+    .btn-primary:hover { background: #003385; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
+    input, textarea { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-family: inherit; margin-bottom: 12px; }
+    input:focus, textarea:focus { outline: none; border-color: #0047b3; }
+    label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #94a3b8; }
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .biz-item { display: flex; align-items: center; gap: 16px; padding: 14px; background: #0f172a; border-radius: 12px; margin-bottom: 8px; }
+    .biz-item img { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; }
+    .biz-item .info { flex: 1; }
+    .biz-item .name { font-weight: 700; }
+    .biz-item .id { font-size: 0.8rem; color: #94a3b8; }
+    .notification { padding: 12px 16px; border-radius: 10px; margin-bottom: 12px; display: none; }
+    .notification.success { background: rgba(16,185,129,0.2); color: #10b981; display: block; }
+    .notification.error { background: rgba(239,68,68,0.2); color: #ef4444; display: block; }
+    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
-
-  <!-- LOGIN SCREEN -->
-  <div id="loginScreen" class="login-screen">
-    <div class="login-box">
-      <i class="fas fa-cube"></i>
-      <h1>Modulos Admin</h1>
-      <div id="loginNotif" class="notif"></div>
-      <div class="form-group" style="text-align: left;">
-        <label>Username</label>
-        <input type="text" id="loginUser" placeholder="Enter username">
-      </div>
-      <div class="form-group" style="text-align: left;">
-        <label>Password</label>
-        <input type="password" id="loginPass" placeholder="Enter password">
-      </div>
-      <button class="btn btn-primary" style="width: 100%; justify-content: center; margin-top: 10px;" onclick="doLogin()">Sign In</button>
-      <p style="margin-top: 15px; font-size: 0.8rem; color: var(--text-muted);">Demo: admin / admin123</p>
-    </div>
-  </div>
-
-  <!-- DASHBOARD SCREEN -->
-  <div id="dashboardScreen" style="display: none;">
-    <div class="header">
-      <div class="logo"><i class="fas fa-cube"></i> MODULOS</div>
-      <button class="btn btn-outline" onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
-    </div>
-
-    <div class="container">
-      <!-- Stats -->
-      <div class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-title">Total Businesses</div>
-          <div class="stat-value" id="statTotal">0</div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-title">System Status</div>
-          <div class="stat-value" style="color: var(--success); font-size: 1.2rem; margin-top: 15px;">Online <i class="fas fa-check-circle"></i></div>
-        </div>
-      </div>
-
-      <div id="dashNotif" class="notif"></div>
-
-      <!-- Add Business Form -->
-      <div class="card">
-        <h2><i class="fas fa-plus-circle"></i> Add New Business (Demo)</h2>
-        <div class="form-grid">
-          <div class="form-group">
-            <label>Business ID</label>
-            <input type="text" id="bizId" placeholder="e.g. 12345">
-          </div>
-          <div class="form-group">
-            <label>Business Name *</label>
-            <input type="text" id="bizName" placeholder="e.g. Cafe Coffee Day">
-          </div>
-          <div class="form-group">
-            <label>Logo URL</label>
-            <input type="text" id="bizLogo" placeholder="https://...">
-          </div>
-          <div class="form-group">
-            <label>Phone Number</label>
-            <input type="text" id="bizPhone" placeholder="+91 9876543210">
-          </div>
-        </div>
-        <button class="btn btn-primary" onclick="addDemoBusiness()"><i class="fas fa-save"></i> Save Business</button>
-      </div>
-
-      <!-- Business List -->
-      <div class="card">
-        <h2><i class="fas fa-list"></i> Registered Businesses</h2>
-        <div id="bizList">
-          <p style="color: var(--text-muted); font-size: 0.9rem;">No businesses added yet. Add one above.</p>
-        </div>
-      </div>
-    </div>
-  </div>
+  <div class="container" id="app"></div>
 
   <script>
-    // Demo State
-    let isLoggedIn = false;
-    let businesses = [];
+    // ==== CONFIG ====
+    const CONFIG = {
+      owner: 'modulosager',
+      repo: 'Modulos-Agency-', // Apna exact repo name daalein
+    };
 
-    // Check Login Status
-    if(sessionStorage.getItem('modulos_demo')) {
-      isLoggedIn = true;
-      businesses = JSON.parse(sessionStorage.getItem('modulos_data') || '[]');
-      showDashboard();
+    const state = {
+      token: sessionStorage.getItem('modulos_token') || null,
+      expires: parseInt(sessionStorage.getItem('modulos_expires') || '0', 10),
+      businesses: []
+    };
+
+    // GitHub Issue banane ka function
+    async function dispatch(action, extra = {}) {
+      const payload = { action, request_id: crypto.randomUUID(), ...extra };
+      
+      const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues`, {
+        method: 'POST',
+        headers: { 
+          'Accept': 'application/vnd.github+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ 
+          title: `[MODULOS-ACTION] ${action} - ${payload.request_id}`,
+          body: JSON.stringify(payload)
+        }),
+      });
+      
+      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
+      const issue = await res.json();
+      return { requestId: payload.request_id, issueNumber: issue.number };
     }
 
-    function doLogin() {
-      const u = document.getElementById('loginUser').value;
-      const p = document.getElementById('loginPass').value;
-      const notif = document.getElementById('loginNotif');
-
-      if(u === 'admin' && p === 'admin123') {
-        isLoggedIn = true;
-        sessionStorage.setItem('modulos_demo', 'true');
-        showDashboard();
-      } else {
-        notif.className = 'notif error';
-        notif.style.display = 'block';
-        notif.innerText = 'Invalid username or password! (Use admin / admin123)';
+    // Result ke liye Issue ke comments check karna
+    async function pollResult(requestId, issueNumber, timeoutMs = 90000) {
+      const start = Date.now();
+      while (Date.now() - start < timeoutMs) {
+        try {
+          const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues/${issueNumber}/comments`);
+          if (res.ok) {
+            const comments = await res.json();
+            if (comments.length > 0) {
+              const lastComment = comments[comments.length - 1].body;
+              const jsonMatch = lastComment.match(/```json\n([\s\S]*?)\n```/);
+              if (jsonMatch) {
+                return JSON.parse(jsonMatch[1]);
+              }
+            }
+          }
+        } catch (_) {}
+        await new Promise(r => setTimeout(r, 3000));
       }
+      return { success: false, error: 'Timeout — check GitHub Issues' };
     }
 
-    function logout() {
-      isLoggedIn = false;
-      sessionStorage.removeItem('modulos_demo');
-      document.getElementById('dashboardScreen').style.display = 'none';
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('loginUser').value = '';
-      document.getElementById('loginPass').value = '';
+    async function loadBusinesses() {
+      try {
+        const res = await fetch(`https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/datas/businesses.json?t=${Date.now()}`);
+        if (res.ok) {
+          const data = await res.json();
+          state.businesses = data.businesses || [];
+        }
+      } catch (_) {}
     }
 
-    function showDashboard() {
-      document.getElementById('loginScreen').style.display = 'none';
-      document.getElementById('dashboardScreen').style.display = 'block';
-      renderList();
-    }
-
-    function addDemoBusiness() {
-      const id = document.getElementById('bizId').value.trim();
-      const name = document.getElementById('bizName').value.trim();
-      const logo = document.getElementById('bizLogo').value.trim();
-      const phone = document.getElementById('bizPhone').value.trim();
-      const notif = document.getElementById('dashNotif');
-
-      if(!id || !name) {
-        notif.className = 'notif error';
-        notif.style.display = 'block';
-        notif.innerText = 'Business ID and Name are required!';
-        return;
+    function render() {
+      const app = document.getElementById('app');
+      if (!state.token || state.expires * 1000 < Date.now()) {
+        state.token = null; sessionStorage.clear();
+        return app.innerHTML = renderLogin();
       }
+      app.innerHTML = renderDashboard();
+      attachEvents();
+    }
 
-      const newBiz = { id, name, logo: logo || 'https://via.placeholder.com/40', phone };
-      businesses.push(newBiz);
-      sessionStorage.setItem('modulos_data', JSON.stringify(businesses));
+    function renderLogin() {
+      return `
+        <div class="card" style="max-width:400px; margin:80px auto;">
+          <h1 style="margin-bottom:8px;">MODULOS</h1>
+          <p style="color:#94a3b8; margin-bottom:24px;">Admin Login</p>
+          <div id="notif" class="notification"></div>
+          <label>Username</label>
+          <input id="username" autocomplete="username">
+          <label>Password</label>
+          <input id="password" type="password" autocomplete="current-password">
+          <button class="btn btn-primary" style="width:100%;" id="loginBtn">Sign In</button>
+        </div>
+      `;
+    }
 
-      // Clear form
-      document.getElementById('bizId').value = '';
-      document.getElementById('bizName').value = '';
-      document.getElementById('bizLogo').value = '';
-      document.getElementById('bizPhone').value = '';
-
-      notif.className = 'notif success';
-      notif.style.display = 'block';
-      notif.innerText = 'Business saved successfully (Demo)!';
-      setTimeout(() => notif.style.display = 'none', 3000);
-
-      renderList();
+    function renderDashboard() {
+      return `
+        <div class="card">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+            <h1>MODULOS Dashboard</h1>
+            <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
+          </div>
+          <div id="notif" class="notification"></div>
+          <div style="display:flex; gap:12px; margin-bottom:16px;">
+            <input id="search" placeholder="Search by name or ID..." style="margin-bottom:0;">
+            <button class="btn btn-primary" onclick="showAdd()">+ Add Business</button>
+          </div>
+          <div id="list"></div>
+        </div>
+        <div id="modal"></div>
+      `;
     }
 
     function renderList() {
-      const list = document.getElementById('bizList');
-      document.getElementById('statTotal').innerText = businesses.length;
-
-      if(businesses.length === 0) {
-        list.innerHTML = '<p style="color: var(--text-muted); font-size: 0.9rem;">No businesses added yet.</p>';
-        return;
-      }
-
-      list.innerHTML = businesses.map(b => `
-        <div class="list-item">
+      const query = (document.getElementById('search')?.value || '').toLowerCase();
+      const filtered = state.businesses.filter(b => b.businessName.toLowerCase().includes(query) || b.businessId.toLowerCase().includes(query));
+      const el = document.getElementById('list');
+      if (!el) return;
+      if (filtered.length === 0) { el.innerHTML = '<p style="color:#94a3b8; padding:20px; text-align:center;">No businesses yet.</p>'; return; }
+      
+      el.innerHTML = filtered.map(b => `
+        <div class="biz-item">
+          <img src="${b.logo || 'https://via.placeholder.com/48'}" alt="">
           <div class="info">
-            <img src="${b.logo}" alt="logo">
-            <div>
-              <div class="name">${b.name}</div>
-              <div class="id">ID: ${b.id}</div>
-            </div>
+            <div class="name">${b.businessName}</div>
+            <div class="id">ID: ${b.businessId}</div>
           </div>
-          <button class="btn btn-outline" style="padding: 6px 12px; font-size: 0.8rem;" onclick="alert('View page for ${b.id}')">View</button>
+          <button class="btn btn-sm btn-primary" onclick="window.open('/Modulos-Agency-/nfcbusinesscp/${b.businessId}/', '_blank')">View</button>
+          <button class="btn btn-sm btn-primary" onclick="showEdit('${b.businessId}')">Edit</button>
+          <button class="btn btn-sm btn-danger" onclick="delBiz('${b.businessId}')">Delete</button>
         </div>
       `).join('');
     }
+
+    function renderForm(mode, b = {}) {
+      return `
+        <div class="card" style="margin-top:16px;">
+          <h2 style="margin-bottom:16px;">${mode === 'add' ? 'Add Business' : 'Edit Business'}</h2>
+          ${mode === 'add' ? `
+            <label>QR URL</label>
+            <input id="f-qrUrl" value="${b.qrUrl || ''}" oninput="extractId(this.value)" placeholder="https://modulos.in/nfcbusinesscp/12345">
+            <div id="idHint" style="font-size:0.8rem; color:#94a3b8; margin-bottom:12px;"></div>
+          ` : ''}
+          <div class="row">
+            <div><label>Business ID</label><input id="f-businessId" value="${b.businessId || ''}" ${mode === 'edit' ? 'readonly' : ''}></div>
+            <div><label>Business Name *</label><input id="f-businessName" value="${b.businessName || ''}"></div>
+          </div>
+          <label>Logo URL</label><input id="f-logo" value="${b.logo || ''}" placeholder="https://...">
+          <label>Description</label><textarea id="f-description" rows="2">${b.description || ''}</textarea>
+          <div class="row">
+            <div><label>Phone</label><input id="f-phone" value="${b.phone || ''}"></div>
+            <div><label>WhatsApp</label><input id="f-whatsapp" value="${b.whatsapp || ''}"></div>
+          </div>
+          <label>Address</label><input id="f-address" value="${b.address || ''}">
+          <div class="row">
+            <div><label>Google Maps</label><input id="f-mapsLink" value="${b.mapsLink || ''}"></div>
+            <div><label>Google Review</label><input id="f-reviewLink" value="${b.reviewLink || ''}"></div>
+          </div>
+          <label>Website</label><input id="f-website" value="${b.website || ''}">
+          <div class="row">
+            <div><label>Instagram</label><input id="f-instagram" value="${b.instagram || ''}"></div>
+            <div><label>Facebook</label><input id="f-facebook" value="${b.facebook || ''}"></div>
+          </div>
+          <label>YouTube</label><input id="f-youtube" value="${b.youtube || ''}">
+          <div style="display:flex; gap:12px; margin-top:16px;">
+            <button class="btn btn-primary" onclick="save('${mode}')" id="saveBtn">${mode === 'add' ? 'Add & Deploy' : 'Save & Deploy'}</button>
+            <button class="btn" style="background:#334155; color:white;" onclick="closeForm()">Cancel</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function attachEvents() {
+      const loginBtn = document.getElementById('loginBtn');
+      if (loginBtn) {
+        loginBtn.onclick = doLogin;
+        document.getElementById('password').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
+      }
+      const search = document.getElementById('search');
+      if (search) search.oninput = renderList;
+      renderList();
+    }
+
+    async function doLogin() {
+      const u = document.getElementById('username').value.trim();
+      const p = document.getElementById('password').value;
+      const btn = document.getElementById('loginBtn');
+      if (!u || !p) return notify('error', 'Enter credentials');
+      btn.innerHTML = '<span class="spinner"></span> Processing...'; btn.disabled = true;
+      try {
+        const { requestId, issueNumber } = await dispatch('login', { username: u, password: p });
+        const result = await pollResult(requestId, issueNumber);
+        if (result.success) {
+          state.token = result.token;
+          state.expires = parseInt(result.expires);
+          sessionStorage.setItem('modulos_token', result.token);
+          sessionStorage.setItem('modulos_expires', result.expires);
+          await loadBusinesses();
+          render();
+        } else {
+          notify('error', result.error || 'Login failed');
+          btn.innerHTML = 'Sign In'; btn.disabled = false;
+        }
+      } catch (e) {
+        notify('error', e.message); btn.innerHTML = 'Sign In'; btn.disabled = false;
+      }
+    }
+
+    function logout() { state.token = null; sessionStorage.clear(); render(); }
+    function showAdd() { document.getElementById('modal').innerHTML = renderForm('add'); }
+    function showEdit(id) { const b = state.businesses.find(x => x.businessId === id); if (b) document.getElementById('modal').innerHTML = renderForm('edit', b); }
+    function closeForm() { document.getElementById('modal').innerHTML = ''; }
+
+    function extractId(url) {
+      const m = url.match(/\/nfcbusinesscp\/([A-Za-z0-9_-]+)/);
+      const hint = document.getElementById('idHint');
+      if (m) { hint.textContent = `Detected ID: ${m[1]}`; hint.style.color = '#10b981'; document.getElementById('f-businessId').value = m[1]; }
+      else { hint.textContent = 'Could not extract ID'; hint.style.color = '#ef4444'; }
+    }
+
+    function collectForm() {
+      const get = id => document.getElementById('f-' + id)?.value?.trim() || '';
+      return {
+        businessId: get('businessId'), businessName: get('businessName'), logo: get('logo'),
+        description: get('description'), phone: get('phone'), whatsapp: get('whatsapp'),
+        address: get('address'), mapsLink: get('mapsLink'), reviewLink: get('reviewLink'),
+        website: get('website'), instagram: get('instagram'), facebook: get('facebook'),
+        youtube: get('youtube'), qrUrl: `https://modulos.in/nfcbusinesscp/${get('businessId')}`,
+      };
+    }
+
+    async function save(mode) {
+      const business = collectForm();
+      if (!business.businessId || !business.businessName) return notify('error', 'ID and Name required');
+      const btn = document.getElementById('saveBtn');
+      btn.innerHTML = '<span class="spinner"></span> Processing...'; btn.disabled = true;
+      try {
+        const { requestId, issueNumber } = await dispatch(mode === 'add' ? 'add' : 'edit', { auth_token: state.token, business });
+        const result = await pollResult(requestId, issueNumber);
+        if (result.success) {
+          notify('success', 'Success! Deploying in 30-60s.');
+          closeForm(); await loadBusinesses(); renderList();
+        } else {
+          notify('error', result.error || 'Failed');
+          btn.innerHTML = mode === 'add' ? 'Add & Deploy' : 'Save & Deploy'; btn.disabled = false;
+        }
+      } catch (e) {
+        notify('error', e.message); btn.innerHTML = mode === 'add' ? 'Add & Deploy' : 'Save & Deploy'; btn.disabled = false;
+      }
+    }
+
+    async function delBiz(id) {
+      if (!confirm(`Delete business ${id}? This cannot be undone.`)) return;
+      try {
+        const { requestId, issueNumber } = await dispatch('delete', { auth_token: state.token, businessId: id });
+        const result = await pollResult(requestId, issueNumber);
+        if (result.success) { notify('success', 'Deleted successfully'); await loadBusinesses(); renderList(); }
+        else notify('error', result.error || 'Failed');
+      } catch (e) { notify('error', e.message); }
+    }
+
+    function notify(type, msg) {
+      const el = document.getElementById('notif');
+      if (!el) return;
+      el.className = `notification ${type}`; el.textContent = msg;
+      setTimeout(() => el.className = 'notification', 5000);
+    }
+
+    render();
   </script>
 </body>
 </html>
