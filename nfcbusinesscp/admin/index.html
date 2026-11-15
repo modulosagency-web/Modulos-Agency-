@@ -125,24 +125,56 @@
   <script>
     let db = null, config = null;
     
-    // 1. Load Database
-    fetch('../json/database.json?t=' + Date.now())
-      .then(r => r.json())
-      .then(d => { db = d; config = d.admin; })
-      .catch(e => showNotif('notif', 'error', 'Error loading database.json'));
+    // ==========================================
+    // SMART DATABASE LOADER (CORS aur Paths handle karega)
+    // ==========================================
+    async function loadDB() {
+      const paths = [
+        '../json/database.json', 
+        '/json/database.json',
+        '../../json/database.json'
+      ];
+      
+      for (let path of paths) {
+        try {
+          const res = await fetch(path + '?t=' + Date.now());
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.admin) return data; 
+          }
+        } catch(e) {}
+      }
+      return null;
+    }
 
-    // 2. Login Logic
+    // App Start
+    async function init() {
+      db = await loadDB();
+      if (db) {
+        config = db.admin;
+        document.getElementById('notif').style.display = 'none';
+      } else {
+        document.getElementById('notif').className = 'notif error';
+        document.getElementById('notif').innerText = 'Error: database.json nahi mili. Check karein ki file json folder mein hai.';
+        document.getElementById('notif').style.display = 'block';
+      }
+    }
+    init();
+
+    // Login Logic
     function doLogin() {
-      if (!config) return showNotif('notif', 'error', 'Database loading... try again');
+      if (!config) return alert('Database load nahi hui. Page refresh karein.');
       if (document.getElementById('u').value === config.username && document.getElementById('p').value === config.password) {
         document.getElementById('loginCard').style.display = 'none';
         document.getElementById('addCard').style.display = 'block';
       } else {
-        showNotif('notif', 'error', 'Invalid Credentials');
+        document.getElementById('notif').className = 'notif error';
+        document.getElementById('notif').innerText = 'Invalid Credentials!';
+        document.getElementById('notif').style.display = 'block';
       }
     }
 
-    // 3. Helper: Image to Base64
+    // Helper: Image to Base64
     function getBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -153,14 +185,13 @@
     }
 
     // ==========================================
-    // 4. MAIN GENERATOR ENGINE
+    // MAIN GENERATOR ENGINE
     // ==========================================
     async function generatePage() {
       const btn = document.getElementById('saveBtn');
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
       btn.disabled = true;
 
-      // Input values
       const id = document.getElementById('bizId').value.trim();
       const name = document.getElementById('bizName').value.trim();
       const desc = document.getElementById('bizDesc').value;
@@ -185,12 +216,11 @@
       const headers = { 'Authorization': `token ${config.github_token}`, 'Accept': 'application/vnd.github.v3+json' };
 
       try {
-        // A. Upload Logo (Agar upload kiya hai)
+        // 1. Upload Logo (Agar upload kiya hai)
         if(logoFile) {
           const base64Logo = await getBase64(logoFile);
           const logoUrl = `${baseApi}/nfcbusinesscp/${id}/logo.png`;
           
-          // Check if logo exists (to get SHA for overwrite)
           let sha = null;
           const checkRes = await fetch(logoUrl, { headers });
           if(checkRes.ok) sha = (await checkRes.json()).sha;
@@ -205,11 +235,12 @@
           });
         }
 
-        // B. Fetch Master Template
-        const templateRes = await fetch('../../template.html?t=' + Date.now());
+        // 2. Fetch Master Template
+        let templateRes = await fetch('/template.html?t=' + Date.now());
+        if(!templateRes.ok) templateRes = await fetch('../template.html?t=' + Date.now());
         let html = await templateRes.text();
 
-        // C. Generate Buttons HTML
+        // 3. Generate Buttons HTML
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
@@ -220,7 +251,7 @@
         if(insta) socialLinks += `<a href="${insta}" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>`;
         if(fb) socialLinks += `<a href="${fb}" class="social-icon" target="_blank"><i class="fab fa-facebook-f"></i></a>`;
 
-        // D. Replace Placeholders
+        // 4. Replace Placeholders
         html = html.replace(/{{NAME}}/g, name)
                    .replace(/{{DESC}}/g, desc || 'Welcome to our business.')
                    .replace(/{{LOGO}}/g, 'logo.png')
@@ -231,10 +262,9 @@
                    .replace(/{{WEB_BTN}}/g, webBtn)
                    .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
 
-        // E. Save Index.html to GitHub
+        // 5. Save Index.html to GitHub
         const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
         
-        // Check if page exists (to get SHA)
         let pageSha = null;
         const checkPage = await fetch(pageUrl, { headers });
         if(checkPage.ok) pageSha = (await checkPage.json()).sha;
@@ -248,12 +278,12 @@
           })
         });
 
-        // F. Update Master JSON Database
-        const dbUrl = `${baseApi}/json/database.json`;
+        // 6. Update Master JSON Database
+        const dbPath = db.admin.github_db_path || 'json/database.json'; // fallback path
+        const dbUrl = `${baseApi}/${dbPath}`;
         const dbRes = await fetch(dbUrl, { headers });
         const dbData = await dbRes.json();
         
-        // Add or update in array
         const newBiz = { id, name, phone, wa, rev, maps, web, insta, fb };
         const existingIdx = db.businesses.findIndex(b => b.id === id);
         if(existingIdx >= 0) db.businesses[existingIdx] = newBiz;
