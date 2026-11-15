@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>{{NAME}} - Connect With Us</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    /* Base Reset */
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { 
+      font-family: 'Plus Jakarta Sans', sans-serif; 
+      background: #f8fafc; 
+      color: #1e293b; 
+      min-height: 100vh; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 20px; 
+    }
+
+    /* Main Card Container */
+    .profile-card { 
+      background: #ffffff; 
+      border-radius: 28px; 
+      max-width: 420px; 
+      width: 100%; 
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08); 
+      text-align: center; 
+      overflow: hidden; 
+      position: relative;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* Top Banner Background */
+    .header-banner { 
+      height: 110px; 
+      background: linear-gradient(135deg, #0047b3, #002b6b); 
+      width: 100%;
+    }
+
+    /* Business Logo */
+    .logo-container {
+      width: 110px;
+      height: 110px;
+      margin: -55px auto 15px;
+      border-radius: 50%;
+      border: 5px solid #ffffff;
+      background: #ffffff;
+      overflow: hidden;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    .logo-container img { 
+      width: 100%; 
+      height: 100%; 
+      object-fit: cover; 
+    }
+
+    /* Business Details */
+    h1 { 
+      font-size: 1.4rem; 
+      font-weight: 800; 
+      color: #0f172a; 
+      margin-bottom: 6px; 
+      padding: 0 20px;
+    }
+    .category {
+      font-size: 0.85rem;
+      color: #0047b3;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 12px;
+    }
+    .description { 
+      font-size: 0.9rem; 
+      color: #64748b; 
+      padding: 0 30px; 
+      margin-bottom: 25px; 
+      line-height: 1.5; 
+    }
+
+    /* Buttons Section */
+    .actions-container {
+      padding: 0 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 25px;
+    }
+
+    /* Main Google Review Button */
+    .btn-review {
+      background: linear-gradient(135deg, #f59e0b, #d97706);
+      color: white;
+      text-decoration: none;
+      padding: 16px;
+      border-radius: 16px;
+      font-weight: 700;
+      font-size: 1.05rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3);
+      transition: transform 0.2s;
+    }
+    .btn-review:active { transform: scale(0.97); }
+
+    /* Grid for other buttons */
+    .btn-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    /* Secondary Buttons */
+    .btn { 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      gap: 8px; 
+      padding: 14px; 
+      border-radius: 14px; 
+      text-decoration: none; 
+      font-weight: 600; 
+      font-size: 0.9rem;
+      transition: transform 0.2s;
+    }
+    .btn:active { transform: scale(0.97); }
+    
+    .btn-call { background: #eff6ff; color: #0047b3; border: 1px solid #bfdbfe; }
+    .btn-wa { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .btn-map { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .btn-web { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+
+    /* Social Icons */
+    .social-section {
+      margin-top: 15px;
+      padding-top: 25px;
+      border-top: 1px solid #f1f5f9;
+      padding-bottom: 30px;
+    }
+    .social-title {
+      font-size: 0.8rem;
+      color: #94a3b8;
+      font-weight: 600;
+      margin-bottom: 15px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    .social-icons { 
+      display: flex; 
+      justify-content: center; 
+      gap: 16px; 
+    }
+    .social-icon { 
+      width: 45px; 
+      height: 45px; 
+      border-radius: 50%; 
+      background: #f8fafc; 
+      display: flex; 
+      align-items: center; 
+      justify-content: center;
+      color: #64748b; 
+      font-size: 1.2rem; 
+      text-decoration: none;
+      border: 1px solid #e2e8f0;
+      transition: all 0.2s;
+    }
+    .social-icon:active { background: #e2e8f0; }
+    
+    /* Footer Branding */
+    .footer-brand {
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      font-weight: 600;
+      letter-spacing: 1px;
+      padding-bottom: 20px;
+    }
+
+    /* Desktop adjustments */
+    @media (min-width: 768px) {
+      .profile-card { max-width: 450px; }
+      .btn-review:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(245, 158, 11, 0.4); }
+      .btn:hover { transform: translateY(-2px); }
+      .social-icon:hover { background: #0047b3; color: white; border-color: #0047b3; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="profile-card">
+    <!-- Top Blue Banner -->
+    <div class="header-banner"></div>
+    
+    <!-- Logo -->
+    <div class="logo-container">
+      <img src="{{LOGO}}" alt="{{NAME}}" onerror="this.src='https://ui-avatars.com/api/?name={{NAME}}&background=0047b3&color=fff'">
+    </div>
+
+    <!-- Info -->
+    <h1>{{NAME}}</h1>
+    <div class="category">Verified Business</div>
+    <p class="description">{{DESC}}</p>
+
+    <!-- Buttons Area -->
+    <div class="actions-container">
+      
+      <!-- TOP BUTTON: GOOGLE REVIEW -->
+      {{REVIEW_BTN}}
+
+      <!-- GRID: CALL & WHATSAPP -->
+      <div class="btn-grid">
+        {{CALL_BTN}}
+        {{WA_BTN}}
+      </div>
+
+      <!-- GRID: MAPS & WEBSITE -->
+      <div class="btn-grid">
+        {{MAPS_BTN}}
+        {{WEB_BTN}}
+      </div>
+
+    </div>
+
+    <!-- Social Media (Instagram, FB, etc) -->
+    <div class="social-section">
+      <div class="social-title">Follow Us</div>
+      <div class="social-icons">
+        {{SOCIAL_LINKS}}
+      </div>
+    </div>
+
+    <div class="footer-brand">POWERED BY MODULOS</div>
+  </div>
+
+</body>
+</html>
