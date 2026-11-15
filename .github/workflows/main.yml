@@ -1,12 +1,11 @@
-
 name: Modulos Master Backend
 
 on:
+  workflow_dispatch: # Manual test ke liye button
   repository_dispatch:
     types: [modulos-action]
 
-# 🔒 CONCURRENCY LOCK: Ek time par sirf ek hi action chalega. 
-# Agar naya aaya, toh purana wala (agar atka hua hai) force kill ho jayega.
+# 🔒 CONCURRENCY LOCK: Ek time par sirf ek run hoga. Naya aayega toh purana kill ho jayega.
 concurrency:
   group: modulos-master-lock
   cancel-in-progress: true
@@ -34,12 +33,23 @@ jobs:
         env:
           PAYLOAD: ${{ toJSON(github.event.client_payload) }}
         run: |
-          echo "$PAYLOAD" > /tmp/payload.json
-          ACTION=$(node -e "console.log(require('/tmp/payload.json').action || '')")
-          REQ_ID=$(node -e "console.log(require('/tmp/payload.json').request_id || '')")
-          echo "action=$ACTION" >> $GITHUB_OUTPUT
-          echo "req_id=$REQ_ID" >> $GITHUB_OUTPUT
-          echo "Processing Action: $ACTION | Request ID: $REQ_ID"
+          if [ -z "$PAYLOAD" ] || [ "$PAYLOAD" == "null" ]; then
+            echo "Manual test run detected. No payload."
+            echo "action=test" >> $GITHUB_OUTPUT
+            echo "req_id=test-manual" >> $GITHUB_OUTPUT
+          else
+            echo "$PAYLOAD" > /tmp/payload.json
+            ACTION=$(node -e "console.log(require('/tmp/payload.json').action || '')")
+            REQ_ID=$(node -e "console.log(require('/tmp/payload.json').request_id || '')")
+            echo "action=$ACTION" >> $GITHUB_OUTPUT
+            echo "req_id=$REQ_ID" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Ensure Folders Exist
+        run: |
+          mkdir -p datas/results
+          mkdir -p scripts
+          mkdir -p templates
 
       - name: Execute Backend Logic
         id: handler
@@ -48,7 +58,14 @@ jobs:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
         run: |
-          node scripts/helpers.js "$ACTION"
+          if [ "$ACTION" == "test" ]; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "message=Manual Test Successful" >> $GITHUB_OUTPUT
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            # Agar helpers.js file nahi mili toh error nahi dega, bas fail ho jayega
+            node scripts/helpers.js "$ACTION"
+          fi
 
       - name: Commit Changes to Database
         if: steps.handler.outputs.changed == 'true'
@@ -60,7 +77,7 @@ jobs:
           git push
 
       - name: Write Result Log
-        if: always()
+        if: always() && steps.payload.outputs.action != 'test'
         env:
           REQ_ID: ${{ steps.payload.outputs.req_id }}
           SUCCESS: ${{ steps.handler.outputs.success }}
@@ -68,7 +85,6 @@ jobs:
           TOKEN: ${{ steps.handler.outputs.token }}
           EXPIRES: ${{ steps.handler.outputs.expires }}
         run: |
-          mkdir -p datas/results
           if [ "$SUCCESS" = "true" ]; then
             node -e "
               const fs = require('fs');
@@ -84,18 +100,10 @@ jobs:
           fi
 
       - name: Commit Result
-        if: always()
+        if: always() && steps.payload.outputs.action != 'test'
         run: |
           git config user.name "Modulos Bot"
           git config user.email "bot@modulos.in"
           git add datas/results/
           git commit -m "Result: ${{ steps.payload.outputs.req_id }}" || echo "No result to commit"
-          git push || true
-
-      - name: Cleanup Old Results (Prevent Repo Bloat)
-        if: always()
-        run: |
-          find datas/results -name "*.json" -mmin +60 -delete 2>/dev/null || true
-          git add datas/results/ 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Auto-cleanup old logs"
           git push || true
