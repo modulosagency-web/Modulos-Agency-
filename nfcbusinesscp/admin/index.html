@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modulos Admin Generator</title>
+  <title>Modulos Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -12,30 +12,31 @@
     .container { max-width: 600px; margin: 0 auto; }
     .card { background: #1e293b; padding: 24px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
     h2 { margin-bottom: 20px; font-weight: 700; font-size: 1.4rem; color: #60a5fa; display: flex; align-items: center; gap: 10px; }
-    
     .form-group { margin-bottom: 15px; }
     label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
     input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-family: inherit; font-size: 0.95rem; }
     input:focus { outline: none; border-color: #60a5fa; }
-    
     .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .file-input-wrapper { border: 1px dashed #475569; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; background: rgba(15, 23, 42, 0.5); }
     .file-input-wrapper input { display: none; }
     .file-input-wrapper label { cursor: pointer; color: #60a5fa; font-weight: 600; margin: 0; font-size: 0.9rem; }
-    
     button { padding: 14px; width: 100%; background: #0047b3; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
     button:hover { background: #003385; }
     button:disabled { opacity: 0.7; cursor: not-allowed; }
-    
     .notif { padding: 14px; border-radius: 10px; margin-bottom: 20px; display: none; font-weight: 600; font-size: 0.9rem; }
     .notif.success { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; display: block; }
     .notif.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; display: block; }
+    .loader-text { font-size: 0.9rem; color: #94a3b8; text-align: center; padding: 20px; }
   </style>
 </head>
 <body>
 
   <div class="container">
-    <div class="card" id="loginCard">
+    <!-- Loading State -->
+    <div id="loader" class="loader-text"><i class="fas fa-spinner fa-spin"></i> Loading Database...</div>
+
+    <!-- Login Card -->
+    <div class="card" id="loginCard" style="display: none;">
       <h2><i class="fas fa-lock"></i> Admin Login</h2>
       <div id="notif" class="notif"></div>
       <div class="form-group">
@@ -49,6 +50,7 @@
       <button onclick="doLogin()">Sign In</button>
     </div>
 
+    <!-- Generator Card -->
     <div class="card" id="addCard" style="display: none;">
       <h2><i class="fas fa-magic"></i> Generate Business Page</h2>
       <div id="notif2" class="notif"></div>
@@ -86,34 +88,62 @@
 
   <script>
     let db = null, config = null;
-    
-    // Yahan API se data fetch ho raha hai (Bina CORS error ke)
+
+    // ==========================================
+    // 1. Load Data from datas/database.json
+    // ==========================================
     async function init() {
       const url = `https://api.github.com/repos/modulosager/Modulos-Agency-/contents/datas/database.json?t=` + Date.now();
+      
       try {
-        const res = await fetch(url);
+        const res = await fetch(url, {
+          headers: { 'Accept': 'application/vnd.github.v3+json' }
+        });
+        
         if (res.ok) {
           const fileData = await res.json();
           const decodedContent = decodeURIComponent(escape(atob(fileData.content)));
           db = JSON.parse(decodedContent);
           config = db.admin;
-          document.getElementById('notif').style.display = 'none';
         } else {
-          document.getElementById('notif').className = 'notif error';
-          document.getElementById('notif').innerText = 'Error: File nahi mili. Make sure GitHub Pages is on.';
-          document.getElementById('notif').style.display = 'block';
+          // Fallback (Agar file na mile toh default data)
+          config = {
+            username: "admin",
+            password: "admin@10M123",
+            github_token: "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",
+            github_owner: "modulosager",
+            github_repo: "Modulos-Agency-"
+          };
+          db = { businesses: [] };
         }
-      } catch(e) { 
-        document.getElementById('notif').className = 'notif error';
-        document.getElementById('notif').innerText = 'Error loading file. Check internet.';
-        document.getElementById('notif').style.display = 'block';
+      } catch (e) {
+        // Fallback (Network error par bhi default data use hoga)
+        config = {
+          username: "admin",
+          password: "admin@10M123",
+          github_token: "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",
+          github_owner: "modulosager",
+          github_repo: "Modulos-Agency-"
+        };
+        db = { businesses: [] };
       }
+
+      // Hide loader and show login
+      document.getElementById('loader').style.display = 'none';
+      document.getElementById('loginCard').style.display = 'block';
     }
+    
+    // Start App
     init();
 
+    // ==========================================
+    // 2. Login Logic
+    // ==========================================
     function doLogin() {
-      if (!config) return alert('Database load nahi hui. Page refresh karein.');
-      if (document.getElementById('u').value === config.username && document.getElementById('p').value === config.password) {
+      const u = document.getElementById('u').value;
+      const p = document.getElementById('p').value;
+
+      if (u === config.username && p === config.password) {
         document.getElementById('loginCard').style.display = 'none';
         document.getElementById('addCard').style.display = 'block';
       } else {
@@ -132,6 +162,9 @@
       });
     }
 
+    // ==========================================
+    // 3. Generator Engine
+    // ==========================================
     async function generatePage() {
       const btn = document.getElementById('saveBtn');
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
@@ -160,6 +193,7 @@
       const headers = { 'Authorization': `token ${config.github_token}`, 'Accept': 'application/vnd.github.v3+json' };
 
       try {
+        // 1. Upload Logo
         if(logoFile) {
           const base64Logo = await getBase64(logoFile);
           const logoUrl = `${baseApi}/nfcbusinesscp/${id}/logo.png`;
@@ -172,10 +206,11 @@
           });
         }
 
-        let templateRes = await fetch('template.html?t=' + Date.now());
-        if(!templateRes.ok) templateRes = await fetch('../template.html?t=' + Date.now());
+        // 2. Fetch Template
+        let templateRes = await fetch('../template.html?t=' + Date.now());
         let html = await templateRes.text();
 
+        // 3. Generate HTML
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
@@ -195,6 +230,7 @@
                    .replace(/{{WEB_BTN}}/g, webBtn)
                    .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
 
+        // 4. Save index.html
         const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
         let pageSha = null;
         const checkPage = await fetch(pageUrl, { headers });
@@ -205,18 +241,32 @@
           body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
         });
 
+        // 5. Update Database (datas/database.json)
         const dbUrl = `${baseApi}/datas/database.json`;
-        const dbRes = await fetch(dbUrl, { headers });
-        const dbData = await dbRes.json();
+        let dbRes = await fetch(dbUrl, { headers });
         
+        let currentDb = db;
+        let dbSha = null;
+        
+        if(dbRes.ok) {
+          const dbData = await dbRes.json();
+          const decodedContent = JSON.parse(decodeURIComponent(escape(atob(dbData.content))));
+          currentDb = decodedContent;
+          dbSha = dbData.sha;
+        }
+
         const newBiz = { id, name, phone, wa, rev, maps, web, insta, fb };
-        const existingIdx = db.businesses.findIndex(b => b.id === id);
-        if(existingIdx >= 0) db.businesses[existingIdx] = newBiz;
-        else db.businesses.push(newBiz);
+        const existingIdx = currentDb.businesses.findIndex(b => b.id === id);
+        if(existingIdx >= 0) currentDb.businesses[existingIdx] = newBiz;
+        else currentDb.businesses.push(newBiz);
 
         await fetch(dbUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ message: `Update DB for ${id}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), sha: dbData.sha })
+          body: JSON.stringify({ 
+            message: `Update DB for ${id}`, 
+            content: btoa(unescape(encodeURIComponent(JSON.stringify(currentDb, null, 2)))), 
+            ...(dbSha && { sha: dbSha })
+          })
         });
 
         showNotif('notif2', 'success', `Success! Page generated for ID: ${id}`);
