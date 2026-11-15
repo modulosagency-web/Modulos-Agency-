@@ -1,4 +1,4 @@
-name: Modulos Master Backend
+name: Modulos Server
 
 on:
   issues:
@@ -9,9 +9,8 @@ permissions:
   issues: write
 
 jobs:
-  handle_all_actions:
-    # Sirf tab chalega jab Issue ke title mein [MODULOS-ACTION] ho
-    if: contains(github.event.issue.title, '[MODULOS-ACTION]')
+  process_request:
+    if: contains(github.event.issue.title, '[MODULOS-API]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -25,95 +24,56 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Extract Payload from Issue
-        id: payload
+      - name: Read Request
+        id: req
         env:
           ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
-          # Issue body ko file mein save karein
           echo "$ISSUE_BODY" > /tmp/payload.json
-          
-          # Action aur Request ID nikaalein
           ACTION=$(node -e "try{console.log(require('/tmp/payload.json').action || '')}catch(e){console.log('')}")
           REQ_ID=$(node -e "try{console.log(require('/tmp/payload.json').request_id || '')}catch(e){console.log('')}")
-          
           echo "action=$ACTION" >> $GITHUB_OUTPUT
           echo "req_id=$REQ_ID" >> $GITHUB_OUTPUT
-          echo "issue_num=$ISSUE_NUM" >> $GITHUB_OUTPUT
 
-      - name: Execute Backend Logic
-        id: handler
+      - name: Run Server Logic (helpers.js)
+        id: server
         env:
-          ACTION: ${{ steps.payload.outputs.action }}
+          ACTION: ${{ steps.req.outputs.action }}
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
-        run: |
-          node scripts/helpers.js "$ACTION"
+        run: node scripts/helpers.js "$ACTION"
 
-      - name: Commit Changes to Database
-        if: steps.handler.outputs.changed == 'true'
+      - name: Send Response & Close Issue
+        if: always()
+        uses: actions/github-script@v7
+        env:
+          SUCCESS: ${{ steps.server.outputs.success }}
+          MESSAGE: ${{ steps.server.outputs.message }}
+          TOKEN: ${{ steps.server.outputs.token }}
+          EXPIRES: ${{ steps.server.outputs.expires }}
+        with:
+          script: |
+            const result = {
+              success: process.env.SUCCESS === 'true',
+              message: process.env.MESSAGE || '',
+              token: process.env.TOKEN || '',
+              expires: process.env.EXPIRES || '0'
+            };
+            await github.rest.issues.createComment({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '```json\n' + JSON.stringify(result, null, 2) + '\n```'
+            });
+            await github.rest.issues.update({
+              owner: context.repo.owner, repo: context.repo.repo,
+              issue_number: context.issue.number, state: 'closed'
+            });
+
+      - name: Commit DB Changes
+        if: steps.server.outputs.changed == 'true'
         run: |
           git config user.name "Modulos Bot"
           git config user.email "bot@modulos.in"
           git add datas/ nfcbusinesscp/
-          git commit -m "Modulos: ${{ steps.payload.outputs.action }} — ${{ steps.payload.outputs.req_id }}" || echo "No changes to commit"
+          git commit -m "Update from ${{ steps.req.outputs.action }}" || echo "No changes"
           git push
-
-      - name: Post Result & Close Issue
-        if: always()
-        uses: actions/github-script@v7
-        env:
-          SUCCESS: ${{ steps.handler.outputs.success }}
-          MESSAGE: ${{ steps.handler.outputs.message }}
-          TOKEN: ${{ steps.handler.outputs.token }}
-          EXPIRES: ${{ steps.handler.outputs.expires }}
-          REQ_ID: ${{ steps.payload.outputs.req_id }}
-        with:
-          script: |
-            const success = process.env.SUCCESS === 'true';
-            const result = {
-              success: success,
-              message: process.env.MESSAGE || '',
-              token: process.env.TOKEN || '',
-              expires: process.env.EXPIRES || '0',
-              timestamp: Date.now()
-            };
-            
-            // Result ko comment karein
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: '```json\n' + JSON.stringify(result, null, 2) + '\n```'
-            });
-            
-            // Issue ko close karein
-            await github.rest.issues.update({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-              state: 'closed'
-            });
-            
-            // Local repo mein bhi save karein taaki pata chale
-            const fs = require('fs');
-            if (!fs.existsSync('datas/results')) fs.mkdirSync('datas/results', { recursive: true });
-            fs.writeFileSync('datas/results/' + process.env.REQ_ID + '.json', JSON.stringify(result));
-            
-      - name: Commit Result
-        if: always()
-        run: |
-          git config user.name "Modulos Bot"
-          git config user.email "bot@modulos.in"
-          git add datas/results/
-          git commit -m "Result: ${{ steps.payload.outputs.req_id }}" || echo "No result"
-          git push || true
-
-      - name: Cleanup Old Results
-        if: always()
-        run: |
-          find datas/results -name "*.json" -mmin +60 -delete 2>/dev/null || true
-          git add datas/results/ 2>/dev/null || true
-          git diff --staged --quiet || git commit -m "Auto-cleanup"
-          git push || true
