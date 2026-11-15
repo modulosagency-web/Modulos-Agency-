@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modulos Admin Dashboard</title>
+  <title>Modulos Admin Generator</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
@@ -89,12 +89,12 @@
     let db = null, config = null;
 
     // =======================================================
-    // SETUP DETAILS
+    // NAYA TOKEN YAHAN SET HAI
     // =======================================================
     const CONFIG = {
       username: "admin",
       password: "admin@10M123",
-      github_token: "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", 
+      github_token: "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", 
       github_owner: "modulosagency-web", 
       github_repo: "Modulos-Agency-"
     };
@@ -109,8 +109,8 @@
           const decodedContent = decodeURIComponent(escape(atob(fileData.content)));
           db = JSON.parse(decodedContent);
           config = db.admin; 
-          config.github_token = CONFIG.github_token; // Force new token
-          config.github_owner = CONFIG.github_owner; // Force correct owner
+          config.github_token = CONFIG.github_token; 
+          config.github_owner = CONFIG.github_owner; 
         } else {
           config = CONFIG;
           db = { businesses: [] };
@@ -187,12 +187,7 @@
           if(!uploadRes.ok) throw new Error("Logo upload failed. Check Token.");
         }
 
-        // 2. Fetch Master Template
-        let templateRes = await fetch(`https://raw.githubusercontent.com/${config.github_owner}/${config.github_repo}/main/template.html?t=` + Date.now());
-        if(!templateRes.ok) throw new Error("Template load nahi hua. Check karein ki template.html root mein hai.");
-        let html = await templateRes.text();
-
-        // 3. Replace Data in Template
+        // 2. Prepare HTML Content (Built-in Template)
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
@@ -202,17 +197,77 @@
         if(insta) socialLinks += `<a href="${insta}" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>`;
         if(fb) socialLinks += `<a href="${fb}" class="social-icon" target="_blank"><i class="fab fa-facebook-f"></i></a>`;
 
-        html = html.replace(/{{NAME}}/g, name)
-                   .replace(/{{DESC}}/g, desc || 'Welcome to our business.')
-                   .replace(/{{LOGO}}/g, 'logo.png')
-                   .replace(/{{REVIEW_BTN}}/g, reviewBtn)
-                   .replace(/{{CALL_BTN}}/g, callBtn)
-                   .replace(/{{WA_BTN}}/g, waBtn)
-                   .replace(/{{MAPS_BTN}}/g, mapsBtn)
-                   .replace(/{{WEB_BTN}}/g, webBtn)
-                   .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
+        const finalHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${name} - Connect With Us</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .profile-card { background: #ffffff; border-radius: 28px; max-width: 420px; width: 100%; box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08); text-align: center; overflow: hidden; position: relative; border: 1px solid #e2e8f0; }
+    .header-banner { height: 110px; background: linear-gradient(135deg, #0047b3, #002b6b); width: 100%; }
+    .logo-container { width: 110px; height: 110px; margin: -55px auto 15px; border-radius: 50%; border: 5px solid #ffffff; background: #ffffff; overflow: hidden; box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+    .logo-container img { width: 100%; height: 100%; object-fit: cover; }
+    h1 { font-size: 1.4rem; font-weight: 800; color: #0f172a; margin-bottom: 6px; padding: 0 20px; }
+    .category { font-size: 0.85rem; color: #0047b3; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 12px; }
+    .description { font-size: 0.9rem; color: #64748b; padding: 0 30px; margin-bottom: 25px; line-height: 1.5; }
+    .actions-container { padding: 0 24px; display: flex; flex-direction: column; gap: 12px; margin-bottom: 25px; }
+    .btn-review { background: linear-gradient(135deg, #f59e0b, #d97706); color: white; text-decoration: none; padding: 16px; border-radius: 16px; font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 8px 20px rgba(245, 158, 11, 0.3); transition: transform 0.2s; }
+    .btn-review:active { transform: scale(0.97); }
+    .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 14px; border-radius: 14px; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: transform 0.2s; }
+    .btn:active { transform: scale(0.97); }
+    .btn-call { background: #eff6ff; color: #0047b3; border: 1px solid #bfdbfe; }
+    .btn-wa { background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; }
+    .btn-map { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .btn-web { background: #f3f4f6; color: #374151; border: 1px solid #d1d5db; }
+    .social-section { margin-top: 15px; padding-top: 25px; border-top: 1px solid #f1f5f9; padding-bottom: 30px; }
+    .social-title { font-size: 0.8rem; color: #94a3b8; font-weight: 600; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 1px; }
+    .social-icons { display: flex; justify-content: center; gap: 16px; }
+    .social-icon { width: 45px; height: 45px; border-radius: 50%; background: #f8fafc; display: flex; align-items: center; justify-content: center; color: #64748b; font-size: 1.2rem; text-decoration: none; border: 1px solid #e2e8f0; transition: all 0.2s; }
+    .social-icon:active { background: #e2e8f0; }
+    .footer-brand { font-size: 0.75rem; color: #cbd5e1; font-weight: 600; letter-spacing: 1px; padding-bottom: 20px; }
+    @media (min-width: 768px) {
+      .btn-review:hover { transform: translateY(-2px); box-shadow: 0 12px 25px rgba(245, 158, 11, 0.4); }
+      .btn:hover { transform: translateY(-2px); }
+      .social-icon:hover { background: #0047b3; color: white; border-color: #0047b3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="profile-card">
+    <div class="header-banner"></div>
+    <div class="logo-container">
+      <img src="logo.png" alt="${name}" onerror="this.src='https://ui-avatars.com/api/?name=${name}&background=0047b3&color=fff'">
+    </div>
+    <h1>${name}</h1>
+    <div class="category">Verified Business</div>
+    <p class="description">${desc || 'Welcome to our business.'}</p>
+    <div class="actions-container">
+      ${reviewBtn}
+      <div class="btn-grid">
+        ${callBtn}
+        ${waBtn}
+      </div>
+      <div class="btn-grid">
+        ${mapsBtn}
+        ${webBtn}
+      </div>
+    </div>
+    <div class="social-section">
+      <div class="social-title">Follow Us</div>
+      <div class="social-icons">${socialLinks}</div>
+    </div>
+    <div class="footer-brand">POWERED BY MODULOS</div>
+  </div>
+</body>
+</html>`;
 
-        // 4. Save index.html
+        // 3. Save index.html
         const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
         let pageSha = null;
         const checkPage = await fetch(pageUrl, { headers });
@@ -220,11 +275,15 @@
 
         const pageRes = await fetch(pageUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
+          body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(finalHtml))), ...(pageSha && { sha: pageSha }) })
         });
-        if(!pageRes.ok) throw new Error("Page save nahi hua. Check Token permissions.");
+        
+        if(!pageRes.ok) {
+          const err = await pageRes.json();
+          throw new Error("Page save nahi hua: " + err.message);
+        }
 
-        // 5. Update Database
+        // 4. Update Database
         const dbUrl = `${baseApi}/datas/database.json`;
         let dbRes = await fetch(dbUrl, { headers });
         
