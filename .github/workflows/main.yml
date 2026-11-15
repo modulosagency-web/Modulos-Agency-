@@ -1,8 +1,14 @@
-name: Modulos Server
+name: Modulos Backend
 
 on:
-  issues:
-    types: [opened]
+  workflow_dispatch: # Manual Run button ke liye
+  repository_dispatch:
+    types: [modulos-action]
+
+# Force Kill Lock: Ek time par sirf ek run chalega
+concurrency:
+  group: modulos-lock
+  cancel-in-progress: true
 
 permissions:
   contents: write
@@ -10,7 +16,6 @@ permissions:
 
 jobs:
   process_request:
-    if: contains(github.event.issue.title, '[MODULOS-API]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -24,56 +29,70 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Read Request
-        id: req
+      - name: Fetch Payload from Issue (Hidden Method)
+        id: payload
         env:
-          ISSUE_BODY: ${{ github.event.issue.body }}
+          GH_TOKEN: ${{ secrets.GMT }}
         run: |
-          echo "$ISSUE_BODY" > /tmp/payload.json
-          ACTION=$(node -e "try{console.log(require('/tmp/payload.json').action || '')}catch(e){console.log('')}")
-          REQ_ID=$(node -e "try{console.log(require('/tmp/payload.json').request_id || '')}catch(e){console.log('')}")
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            echo "${{ toJSON(github.event.client_payload) }}" > /tmp/payload.json
+            ISSUE_NUM="${{ github.event.client_payload.issueNumber }}"
+          else
+            # Agar manual run hai, toh issue number 0
+            echo '{"action":"test"}' > /tmp/payload.json
+            ISSUE_NUM="0"
+          fi
+          
+          ACTION=$(node -e "console.log(require('/tmp/payload.json').action || '')")
+          REQ_ID=$(node -e "console.log(require('/tmp/payload.json').request_id || '')")
+          
           echo "action=$ACTION" >> $GITHUB_OUTPUT
           echo "req_id=$REQ_ID" >> $GITHUB_OUTPUT
+          echo "issue_num=$ISSUE_NUM" >> $GITHUB_OUTPUT
 
-      - name: Run Server Logic (helpers.js)
-        id: server
+      - name: Execute Backend Logic
+        id: handler
         env:
-          ACTION: ${{ steps.req.outputs.action }}
+          ACTION: ${{ steps.payload.outputs.action }}
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
-        run: node scripts/helpers.js "$ACTION"
+        run: |
+          if [ "$ACTION" == "test" ]; then
+            echo "success=true" >> $GITHUB_OUTPUT
+            echo "message=Manual Test Successful" >> $GITHUB_OUTPUT
+            echo "changed=false" >> $GITHUB_OUTPUT
+          else
+            node scripts/helpers.js "$ACTION"
+          fi
 
-      - name: Send Response & Close Issue
-        if: always()
-        uses: actions/github-script@v7
-        env:
-          SUCCESS: ${{ steps.server.outputs.success }}
-          MESSAGE: ${{ steps.server.outputs.message }}
-          TOKEN: ${{ steps.server.outputs.token }}
-          EXPIRES: ${{ steps.server.outputs.expires }}
-        with:
-          script: |
-            const result = {
-              success: process.env.SUCCESS === 'true',
-              message: process.env.MESSAGE || '',
-              token: process.env.TOKEN || '',
-              expires: process.env.EXPIRES || '0'
-            };
-            await github.rest.issues.createComment({
-              owner: context.repo.owner, repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: '```json\n' + JSON.stringify(result, null, 2) + '\n```'
-            });
-            await github.rest.issues.update({
-              owner: context.repo.owner, repo: context.repo.repo,
-              issue_number: context.issue.number, state: 'closed'
-            });
-
-      - name: Commit DB Changes
-        if: steps.server.outputs.changed == 'true'
+      - name: Commit Changes to Database
+        if: steps.handler.outputs.changed == 'true'
         run: |
           git config user.name "Modulos Bot"
           git config user.email "bot@modulos.in"
           git add datas/ nfcbusinesscp/
-          git commit -m "Update from ${{ steps.req.outputs.action }}" || echo "No changes"
+          git commit -m "Modulos: ${{ steps.payload.outputs.action }} — ${{ steps.payload.outputs.req_id }}" || echo "No changes"
           git push
+
+      - name: Send Result to Dashboard via Issue Comment
+        if: always() && steps.payload.outputs.issue_num != '0'
+        env:
+          GH_TOKEN: ${{ secrets.GMT }}
+          SUCCESS: ${{ steps.handler.outputs.success }}
+          MESSAGE: ${{ steps.handler.outputs.message }}
+          TOKEN: ${{ steps.handler.outputs.token }}
+          EXPIRES: ${{ steps.handler.outputs.expires }}
+          ISSUE_NUM: ${{ steps.payload.outputs.issue_num }}
+        run: |
+          RESULT_JSON=$(node -e "
+            const result = {
+              success: process.env.SUCCESS === 'true',
+              message: process.env.MESSAGE || '',
+              token: process.env.TOKEN || '',
+              expires: process.env.EXPIRES || '0',
+              timestamp: Date.now()
+            };
+            console.log(JSON.stringify(result));
+          ")
+          gh issue comment $ISSUE_NUM --body "\`\`\`json\n$RESULT_JSON\n\`\`\`"
+          gh issue close $ISSUE_NUM
