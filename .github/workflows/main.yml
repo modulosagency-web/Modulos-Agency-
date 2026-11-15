@@ -1,20 +1,17 @@
 name: Modulos Master Backend
 
 on:
-  workflow_dispatch: # Manual test ke liye button
-  repository_dispatch:
-    types: [modulos-action]
-
-# 🔒 CONCURRENCY LOCK: Ek time par sirf ek run hoga. Naya aayega toh purana kill ho jayega.
-concurrency:
-  group: modulos-master-lock
-  cancel-in-progress: true
+  issues:
+    types: [opened]
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   handle_all_actions:
+    # Sirf tab chalega jab Issue ke title mein [MODULOS-ACTION] ho
+    if: contains(github.event.issue.title, '[MODULOS-ACTION]')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -28,28 +25,22 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Extract Payload Data
+      - name: Extract Payload from Issue
         id: payload
         env:
-          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUM: ${{ github.event.issue.number }}
         run: |
-          if [ -z "$PAYLOAD" ] || [ "$PAYLOAD" == "null" ]; then
-            echo "Manual test run detected. No payload."
-            echo "action=test" >> $GITHUB_OUTPUT
-            echo "req_id=test-manual" >> $GITHUB_OUTPUT
-          else
-            echo "$PAYLOAD" > /tmp/payload.json
-            ACTION=$(node -e "console.log(require('/tmp/payload.json').action || '')")
-            REQ_ID=$(node -e "console.log(require('/tmp/payload.json').request_id || '')")
-            echo "action=$ACTION" >> $GITHUB_OUTPUT
-            echo "req_id=$REQ_ID" >> $GITHUB_OUTPUT
-          fi
-
-      - name: Ensure Folders Exist
-        run: |
-          mkdir -p datas/results
-          mkdir -p scripts
-          mkdir -p templates
+          # Issue body ko file mein save karein
+          echo "$ISSUE_BODY" > /tmp/payload.json
+          
+          # Action aur Request ID nikaalein
+          ACTION=$(node -e "try{console.log(require('/tmp/payload.json').action || '')}catch(e){console.log('')}")
+          REQ_ID=$(node -e "try{console.log(require('/tmp/payload.json').request_id || '')}catch(e){console.log('')}")
+          
+          echo "action=$ACTION" >> $GITHUB_OUTPUT
+          echo "req_id=$REQ_ID" >> $GITHUB_OUTPUT
+          echo "issue_num=$ISSUE_NUM" >> $GITHUB_OUTPUT
 
       - name: Execute Backend Logic
         id: handler
@@ -58,14 +49,7 @@ jobs:
           ADMIN_USER: ${{ secrets.ADMIN_USER }}
           ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
         run: |
-          if [ "$ACTION" == "test" ]; then
-            echo "success=true" >> $GITHUB_OUTPUT
-            echo "message=Manual Test Successful" >> $GITHUB_OUTPUT
-            echo "changed=false" >> $GITHUB_OUTPUT
-          else
-            # Agar helpers.js file nahi mili toh error nahi dega, bas fail ho jayega
-            node scripts/helpers.js "$ACTION"
-          fi
+          node scripts/helpers.js "$ACTION"
 
       - name: Commit Changes to Database
         if: steps.handler.outputs.changed == 'true'
@@ -76,34 +60,60 @@ jobs:
           git commit -m "Modulos: ${{ steps.payload.outputs.action }} — ${{ steps.payload.outputs.req_id }}" || echo "No changes to commit"
           git push
 
-      - name: Write Result Log
-        if: always() && steps.payload.outputs.action != 'test'
+      - name: Post Result & Close Issue
+        if: always()
+        uses: actions/github-script@v7
         env:
-          REQ_ID: ${{ steps.payload.outputs.req_id }}
           SUCCESS: ${{ steps.handler.outputs.success }}
           MESSAGE: ${{ steps.handler.outputs.message }}
           TOKEN: ${{ steps.handler.outputs.token }}
           EXPIRES: ${{ steps.handler.outputs.expires }}
-        run: |
-          if [ "$SUCCESS" = "true" ]; then
-            node -e "
-              const fs = require('fs');
-              const result = { success: true, message: process.env.MESSAGE || 'OK', token: process.env.TOKEN || '', expires: process.env.EXPIRES || '0', timestamp: Date.now() };
-              fs.writeFileSync('datas/results/' + process.env.REQ_ID + '.json', JSON.stringify(result));
-            "
-          else
-            node -e "
-              const fs = require('fs');
-              const result = { success: false, error: process.env.MESSAGE || 'Operation failed', timestamp: Date.now() };
-              fs.writeFileSync('datas/results/' + process.env.REQ_ID + '.json', JSON.stringify(result));
-            "
-          fi
-
+          REQ_ID: ${{ steps.payload.outputs.req_id }}
+        with:
+          script: |
+            const success = process.env.SUCCESS === 'true';
+            const result = {
+              success: success,
+              message: process.env.MESSAGE || '',
+              token: process.env.TOKEN || '',
+              expires: process.env.EXPIRES || '0',
+              timestamp: Date.now()
+            };
+            
+            // Result ko comment karein
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '```json\n' + JSON.stringify(result, null, 2) + '\n```'
+            });
+            
+            // Issue ko close karein
+            await github.rest.issues.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              state: 'closed'
+            });
+            
+            // Local repo mein bhi save karein taaki pata chale
+            const fs = require('fs');
+            if (!fs.existsSync('datas/results')) fs.mkdirSync('datas/results', { recursive: true });
+            fs.writeFileSync('datas/results/' + process.env.REQ_ID + '.json', JSON.stringify(result));
+            
       - name: Commit Result
-        if: always() && steps.payload.outputs.action != 'test'
+        if: always()
         run: |
           git config user.name "Modulos Bot"
           git config user.email "bot@modulos.in"
           git add datas/results/
-          git commit -m "Result: ${{ steps.payload.outputs.req_id }}" || echo "No result to commit"
+          git commit -m "Result: ${{ steps.payload.outputs.req_id }}" || echo "No result"
+          git push || true
+
+      - name: Cleanup Old Results
+        if: always()
+        run: |
+          find datas/results -name "*.json" -mmin +60 -delete 2>/dev/null || true
+          git add datas/results/ 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "Auto-cleanup"
           git push || true
