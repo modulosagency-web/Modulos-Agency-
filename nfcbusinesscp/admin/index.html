@@ -3,284 +3,166 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modulos Admin Dashboard</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <title>Modulos Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; min-height: 100vh; padding: 20px; }
-    .container { max-width: 1100px; margin: 0 auto; }
-    .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 16px; }
-    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; font-size: 0.9rem; transition: 0.2s; }
-    .btn-primary { background: #0047b3; color: white; }
-    .btn-primary:hover { background: #003385; }
-    .btn-danger { background: #ef4444; color: white; }
-    .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-    input, textarea { width: 100%; padding: 10px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #f8fafc; font-family: inherit; margin-bottom: 12px; }
-    input:focus, textarea:focus { outline: none; border-color: #0047b3; }
-    label { display: block; margin-bottom: 6px; font-size: 0.85rem; color: #94a3b8; }
-    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .biz-item { display: flex; align-items: center; gap: 16px; padding: 14px; background: #0f172a; border-radius: 12px; margin-bottom: 8px; }
-    .biz-item img { width: 48px; height: 48px; border-radius: 10px; object-fit: cover; }
-    .biz-item .info { flex: 1; }
-    .biz-item .name { font-weight: 700; }
-    .biz-item .id { font-size: 0.8rem; color: #94a3b8; }
-    .notification { padding: 12px 16px; border-radius: 10px; margin-bottom: 12px; display: none; }
-    .notification.success { background: rgba(16,185,129,0.2); color: #10b981; display: block; }
-    .notification.error { background: rgba(239,68,68,0.2); color: #ef4444; display: block; }
-    .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #fff; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; min-height: 100vh; padding: 20px; }
+    .card { background: #1e293b; border-radius: 16px; padding: 24px; max-width: 800px; margin: 0 auto; }
+    h2 { margin-bottom: 20px; }
+    input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; }
+    button { padding: 12px 24px; background: #0047b3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    button:hover { background: #003385; }
+    .list-item { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .notif { padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
+    .notif.success { background: rgba(16,185,129,0.2); color: #10b981; display: block; }
+    .notif.error { background: rgba(239,68,68,0.2); color: #ef4444; display: block; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   </style>
 </head>
 <body>
-  <div class="container" id="app"></div>
+  <div class="card">
+    <h2>Modulos Dashboard</h2>
+    <div id="notif" class="notif"></div>
+    
+    <div id="loginBox">
+      <h3>Admin Login</h3>
+      <input type="text" id="u" placeholder="Username">
+      <input type="password" id="p" placeholder="Password">
+      <button onclick="doLogin()" id="loginBtn">Sign In</button>
+    </div>
+
+    <div id="dashboardBox" style="display: none;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3>Add Business</h3>
+        <button onclick="logout()" style="background: #ef4444; padding: 8px 12px; font-size: 0.8rem;">Logout</button>
+      </div>
+      
+      <input type="text" id="bId" placeholder="Business ID (e.g. 12345)">
+      <input type="text" id="bName" placeholder="Business Name">
+      <input type="text" id="bPhone" placeholder="Phone Number">
+      <button onclick="addBusiness()" id="saveBtn">Save Business</button>
+      
+      <h3 style="margin-top: 20px;">Registered Businesses</h3>
+      <div id="list"></div>
+    </div>
+  </div>
 
   <script>
-    // ==== CONFIG ====
-    const CONFIG = {
-      owner: 'modulosager',
-      repo: 'Modulos-Agency-'
-    };
+    let dbData = null;
+    let config = null;
 
-    const state = {
-      token: sessionStorage.getItem('modulos_token') || null,
-      businesses: []
-    };
-
-    // 🌟 NAYA METHOD: Issue banakar server ko request bhejna
-    async function askServer(action, extra = {}) {
-      const payload = { action, request_id: crypto.randomUUID(), ...extra };
-      
-      const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues`, {
-        method: 'POST',
-        headers: { 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          title: `[MODULOS-API] ${action} - ${payload.request_id}`,
-          body: JSON.stringify(payload) 
-        }),
-      });
-      
-      if (!res.ok) throw new Error(`Request failed: ${res.status}`);
-      const issue = await res.json();
-      return issue.number;
+    // JSON fetch function
+    async function fetchJSON(path) {
+      const res = await fetch(`../../datas/${path}?t=` + Date.now());
+      if (!res.ok) throw new Error('File not found');
+      return await res.json();
     }
 
-    // 🌟 NAYA METHOD: Server ke reply ka wait karna
-    async function waitForReply(issueNumber) {
-      const start = Date.now();
-      while (Date.now() - start < 60000) { // 60 seconds timeout
-        try {
-          const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues/${issueNumber}/comments`);
-          if (res.ok) {
-            const comments = await res.json();
-            if (comments.length > 0) {
-              const match = comments[0].body.match(/```json\n([\s\S]*?)\n```/);
-              if (match) return JSON.parse(match[1]);
-            }
-          }
-        } catch (_) {}
-        await new Promise(r => setTimeout(r, 2000)); // Har 2 sec mein check
-      }
-      throw new Error('Timeout: Server ne reply nahi kiya');
-    }
-
-    async function loadBusinesses() {
+    // Start: Load Database
+    async function init() {
       try {
-        const res = await fetch(`https://raw.githubusercontent.com/${CONFIG.owner}/${CONFIG.repo}/main/datas/businesses.json?t=${Date.now()}`);
-        if (res.ok) {
-          const data = await res.json();
-          state.businesses = data.businesses || [];
-        }
-      } catch (_) {}
+        dbData = await fetchJSON('database.json');
+        config = dbData.admin;
+      } catch (e) {
+        showNotif('error', 'database.json not found! Please create it in datas folder.');
+      }
+    }
+    init();
+
+    function doLogin() {
+      const u = document.getElementById('u').value;
+      const p = document.getElementById('p').value;
+
+      if (!config) return showNotif('error', 'Database not loaded.');
+
+      if (u === config.username && p === config.password) {
+        document.getElementById('loginBox').style.display = 'none';
+        document.getElementById('dashboardBox').style.display = 'block';
+        renderList();
+      } else {
+        showNotif('error', 'Invalid credentials');
+      }
     }
 
-    // ================= UI RENDER =================
-    function render() {
-      const app = document.getElementById('app');
-      if (!state.token) return app.innerHTML = renderLogin();
-      app.innerHTML = renderDashboard();
-      attachEvents();
-    }
+    async function addBusiness() {
+      const id = document.getElementById('bId').value.trim();
+      const name = document.getElementById('bName').value.trim();
+      const phone = document.getElementById('bPhone').value.trim();
 
-    function renderLogin() {
-      return `
-        <div class="card" style="max-width:400px; margin:80px auto;">
-          <h1 style="margin-bottom:8px;">MODULOS</h1>
-          <p style="color:#94a3b8; margin-bottom:24px;">Admin Login</p>
-          <div id="notif" class="notification"></div>
-          <label>Username</label>
-          <input id="username" autocomplete="username">
-          <label>Password</label>
-          <input id="password" type="password" autocomplete="current-password">
-          <button class="btn btn-primary" style="width:100%; justify-content:center;" id="loginBtn" onclick="doLogin()">Sign In</button>
-        </div>
-      `;
-    }
+      if (!id || !name) return showNotif('error', 'ID and Name required');
+      if (!config.github_token) return showNotif('error', 'GitHub Token missing in database.json');
 
-    function renderDashboard() {
-      return `
-        <div class="card">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-            <h1>MODULOS Dashboard</h1>
-            <button class="btn btn-danger btn-sm" onclick="logout()">Logout</button>
-          </div>
-          <div id="notif" class="notification"></div>
-          <div style="display:flex; gap:12px; margin-bottom:16px;">
-            <input id="search" placeholder="Search by name or ID..." style="margin-bottom:0;">
-            <button class="btn btn-primary" onclick="showAdd()">+ Add Business</button>
-          </div>
-          <div id="list"></div>
-        </div>
-        <div id="modal"></div>
-      `;
+      const btn = document.getElementById('saveBtn');
+      btn.innerText = 'Saving...'; btn.disabled = true;
+
+      const newBusiness = { businessId: id, businessName: name, phone: phone, createdAt: new Date().toISOString() };
+
+      try {
+        // 1. Get latest file SHA from GitHub
+        const getUrl = `https://api.github.com/repos/${config.github_owner}/${config.github_repo}/contents/datas/database.json`;
+        const getRes = await fetch(getUrl, {
+          headers: { 'Authorization': `token ${config.github_token}` }
+        });
+        const getData = await getRes.json();
+        
+        // 2. Update data
+        dbData.businesses.push(newBusiness);
+        const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(dbData, null, 2))));
+
+        // 3. Push to GitHub
+        const putRes = await fetch(getUrl, {
+          method: 'PUT',
+          headers: { 
+            'Authorization': `token ${config.github_token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify({
+            message: `Added business ${name}`,
+            content: newContent,
+            sha: getData.sha
+          })
+        });
+
+        if (!putRes.ok) throw new Error('Failed to save to GitHub');
+
+        showNotif('success', 'Business saved successfully to GitHub!');
+        renderList();
+        
+        // Clear form
+        document.getElementById('bId').value = '';
+        document.getElementById('bName').value = '';
+        document.getElementById('bPhone').value = '';
+
+      } catch (err) {
+        showNotif('error', 'Error: ' + err.message);
+      } finally {
+        btn.innerText = 'Save Business'; btn.disabled = false;
+      }
     }
 
     function renderList() {
-      const query = (document.getElementById('search')?.value || '').toLowerCase();
-      const filtered = state.businesses.filter(b => b.businessName.toLowerCase().includes(query) || b.businessId.toLowerCase().includes(query));
-      const el = document.getElementById('list');
-      if (!el) return;
-      if (filtered.length === 0) { el.innerHTML = '<p style="color:#94a3b8; padding:20px; text-align:center;">No businesses yet.</p>'; return; }
-      
-      el.innerHTML = filtered.map(b => `
-        <div class="biz-item">
-          <img src="${b.logo || 'https://via.placeholder.com/48'}" alt="">
-          <div class="info">
-            <div class="name">${b.businessName}</div>
-            <div class="id">ID: ${b.businessId}</div>
-          </div>
-          <button class="btn btn-sm btn-primary" onclick="window.open('/Modulos-Agency-/nfcbusinesscp/${b.businessId}/', '_blank')">View</button>
+      const list = document.getElementById('list');
+      if (!dbData || !dbData.businesses || dbData.businesses.length === 0) {
+        list.innerHTML = '<p style="color:#94a3b8;">No businesses yet.</p>';
+        return;
+      }
+      list.innerHTML = dbData.businesses.map(b => `
+        <div class="list-item">
+          <div><strong>${b.businessName}</strong> (ID: ${b.businessId})</div>
         </div>
       `).join('');
     }
 
-    function renderForm() {
-      return `
-        <div class="card" style="margin-top:16px;">
-          <h2 style="margin-bottom:16px;">Add Business</h2>
-          <label>QR URL</label>
-          <input id="f-qrUrl" oninput="extractId(this.value)" placeholder="https://modulos.in/nfcbusinesscp/12345">
-          <div id="idHint" style="font-size:0.8rem; color:#94a3b8; margin-bottom:12px;"></div>
-          
-          <div class="row">
-            <div><label>Business ID</label><input id="f-businessId"></div>
-            <div><label>Business Name *</label><input id="f-businessName"></div>
-          </div>
-          <label>Logo URL</label><input id="f-logo" placeholder="https://...">
-          <label>Description</label><textarea id="f-description" rows="2"></textarea>
-          <div class="row">
-            <div><label>Phone</label><input id="f-phone"></div>
-            <div><label>WhatsApp</label><input id="f-whatsapp"></div>
-          </div>
-          <label>Address</label><input id="f-address">
-          <div class="row">
-            <div><label>Google Maps</label><input id="f-mapsLink"></div>
-            <div><label>Google Review</label><input id="f-reviewLink"></div>
-          </div>
-          <label>Website</label><input id="f-website">
-          <div class="row">
-            <div><label>Instagram</label><input id="f-instagram"></div>
-            <div><label>Facebook</label><input id="f-facebook"></div>
-          </div>
-          <label>YouTube</label><input id="f-youtube">
-          
-          <div style="display:flex; gap:12px; margin-top:16px;">
-            <button class="btn btn-primary" onclick="save()" id="saveBtn">Add & Deploy</button>
-            <button class="btn" style="background:#334155; color:white;" onclick="closeForm()">Cancel</button>
-          </div>
-        </div>
-      `;
+    function logout() {
+      location.reload();
     }
 
-    function attachEvents() {
-      const search = document.getElementById('search');
-      if (search) search.oninput = renderList;
-      renderList();
+    function showNotif(type, msg) {
+      const n = document.getElementById('notif');
+      n.className = `notif ${type}`;
+      n.innerText = msg;
+      setTimeout(() => n.style.display = 'none', 5000);
     }
-
-    // ================= ACTIONS =================
-    async function doLogin() {
-      const u = document.getElementById('username').value.trim();
-      const p = document.getElementById('password').value;
-      if (!u || !p) return notify('error', 'Enter credentials');
-      
-      const btn = document.getElementById('loginBtn');
-      btn.innerHTML = '<span class="spinner"></span> Processing...'; btn.disabled = true;
-      
-      try {
-        // 1. Issue banao (Server ko bolo login check kare)
-        const issueNum = await askServer('login', { username: u, password: p });
-        
-        // 2. Reply ka wait karo
-        const result = await waitForReply(issueNum);
-        
-        if (result.success) {
-          state.token = result.token;
-          sessionStorage.setItem('modulos_token', result.token);
-          await loadBusinesses();
-          render();
-        } else {
-          notify('error', result.error || 'Invalid credentials');
-          btn.innerHTML = 'Sign In'; btn.disabled = false;
-        }
-      } catch (e) {
-        notify('error', e.message); btn.innerHTML = 'Sign In'; btn.disabled = false;
-      }
-    }
-
-    function logout() { state.token = null; sessionStorage.clear(); render(); }
-    function showAdd() { document.getElementById('modal').innerHTML = renderForm(); }
-    function closeForm() { document.getElementById('modal').innerHTML = ''; }
-
-    function extractId(url) {
-      const m = url.match(/\/nfcbusinesscp\/([A-Za-z0-9_-]+)/);
-      const hint = document.getElementById('idHint');
-      if (m) { hint.textContent = `Detected ID: ${m[1]}`; hint.style.color = '#10b981'; document.getElementById('f-businessId').value = m[1]; }
-      else { hint.textContent = 'Could not extract ID'; hint.style.color = '#ef4444'; }
-    }
-
-    function collectForm() {
-      const get = id => document.getElementById('f-' + id)?.value?.trim() || '';
-      return {
-        businessId: get('businessId'), businessName: get('businessName'), logo: get('logo'),
-        description: get('description'), phone: get('phone'), whatsapp: get('whatsapp'),
-        address: get('address'), mapsLink: get('mapsLink'), reviewLink: get('reviewLink'),
-        website: get('website'), instagram: get('instagram'), facebook: get('facebook'),
-        youtube: get('youtube'), qrUrl: `https://modulos.in/nfcbusinesscp/${get('businessId')}`
-      };
-    }
-
-    async function save() {
-      const business = collectForm();
-      if (!business.businessId || !business.businessName) return notify('error', 'ID and Name required');
-      
-      const btn = document.getElementById('saveBtn');
-      btn.innerHTML = '<span class="spinner"></span> Deploying...'; btn.disabled = true;
-      
-      try {
-        const issueNum = await askServer('add', { auth_token: state.token, business });
-        const result = await waitForReply(issueNum);
-        
-        if (result.success) {
-          notify('success', 'Success! GitHub deploying... (Wait 30s)');
-          closeForm(); await loadBusinesses(); renderList();
-        } else {
-          notify('error', result.error || 'Failed');
-          btn.innerHTML = 'Add & Deploy'; btn.disabled = false;
-        }
-      } catch (e) {
-        notify('error', e.message); btn.innerHTML = 'Add & Deploy'; btn.disabled = false;
-      }
-    }
-
-    function notify(type, msg) {
-      const el = document.getElementById('notif');
-      if (!el) return;
-      el.className = `notification ${type}`; el.textContent = msg;
-      setTimeout(() => el.className = 'notification', 5000);
-    }
-
-    render();
   </script>
 </body>
 </html>
