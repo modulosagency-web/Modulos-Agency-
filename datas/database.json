@@ -2,7 +2,7 @@
   "admin": {
     "username": "admin",
     "password": "admin@10M123",
-    "github_token": "ghp_YOUR_GITHUB_TOKEN_HERE",
+    "github_token": "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",
     "github_owner": "modulosager",
     "github_repo": "Modulos-Agency-"
   },
