@@ -32,7 +32,6 @@
 <body>
 
   <div class="container">
-    <!-- Loading State -->
     <div id="loader" class="loader-text"><i class="fas fa-spinner fa-spin"></i> Loading Database...</div>
 
     <!-- Login Card -->
@@ -56,8 +55,8 @@
       <div id="notif2" class="notif"></div>
       
       <div class="row">
-        <div class="form-group"><label>Business ID *</label><input type="text" id="bizId" placeholder="e.g. 8383"></div>
-        <div class="form-group"><label>Business Name *</label><input type="text" id="bizName" placeholder="e.g. Cafe Coffee Day"></div>
+        <div class="form-group"><label>Business ID *</label><input type="text" id="bizId" placeholder="e.g. mr"></div>
+        <div class="form-group"><label>Business Name *</label><input type="text" id="bizName" placeholder="e.g. My Business"></div>
       </div>
       
       <div class="form-group"><label>Description</label><input type="text" id="bizDesc" placeholder="Short description..."></div>
@@ -89,61 +88,43 @@
   <script>
     let db = null, config = null;
 
-    // ==========================================
-    // 1. Load Data from datas/database.json
-    // ==========================================
+    // =======================================================
+    // YAHAN AAPKA NAYA TOKEN DAALA GAYA HAI
+    // =======================================================
+    const CONFIG = {
+      username: "admin",
+      password: "admin@10M123",
+      github_token: "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",
+      github_owner: "modulosager",
+      github_repo: "Modulos-Agency-"
+    };
+    // =======================================================
+
     async function init() {
       const url = `https://api.github.com/repos/modulosager/Modulos-Agency-/contents/datas/database.json?t=` + Date.now();
-      
       try {
-        const res = await fetch(url, {
-          headers: { 'Accept': 'application/vnd.github.v3+json' }
-        });
-        
+        const res = await fetch(url, { headers: { 'Authorization': `token ${CONFIG.github_token}` } });
         if (res.ok) {
           const fileData = await res.json();
           const decodedContent = decodeURIComponent(escape(atob(fileData.content)));
           db = JSON.parse(decodedContent);
-          config = db.admin;
+          config = db.admin; // Agar database.json mein token purana hai, toh use override karein
+          config.github_token = CONFIG.github_token; 
         } else {
-          // Fallback (Agar file na mile toh default data)
-          config = {
-            username: "admin",
-            password: "admin@10M123",
-            github_token: "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",
-            github_owner: "modulosager",
-            github_repo: "Modulos-Agency-"
-          };
+          config = CONFIG;
           db = { businesses: [] };
         }
       } catch (e) {
-        // Fallback (Network error par bhi default data use hoga)
-        config = {
-          username: "admin",
-          password: "admin@10M123",
-          github_token: "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",
-          github_owner: "modulosager",
-          github_repo: "Modulos-Agency-"
-        };
+        config = CONFIG;
         db = { businesses: [] };
       }
-
-      // Hide loader and show login
       document.getElementById('loader').style.display = 'none';
       document.getElementById('loginCard').style.display = 'block';
     }
-    
-    // Start App
     init();
 
-    // ==========================================
-    // 2. Login Logic
-    // ==========================================
     function doLogin() {
-      const u = document.getElementById('u').value;
-      const p = document.getElementById('p').value;
-
-      if (u === config.username && p === config.password) {
+      if (document.getElementById('u').value === config.username && document.getElementById('p').value === config.password) {
         document.getElementById('loginCard').style.display = 'none';
         document.getElementById('addCard').style.display = 'block';
       } else {
@@ -162,9 +143,6 @@
       });
     }
 
-    // ==========================================
-    // 3. Generator Engine
-    // ==========================================
     async function generatePage() {
       const btn = document.getElementById('saveBtn');
       btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
@@ -200,17 +178,20 @@
           let sha = null;
           const checkRes = await fetch(logoUrl, { headers });
           if(checkRes.ok) sha = (await checkRes.json()).sha;
-          await fetch(logoUrl, {
+          
+          const uploadRes = await fetch(logoUrl, {
             method: 'PUT', headers,
             body: JSON.stringify({ message: `Logo for ${id}`, content: base64Logo, ...(sha && { sha }) })
           });
+          if(!uploadRes.ok) throw new Error("Logo upload failed. Check Token permissions.");
         }
 
         // 2. Fetch Template
         let templateRes = await fetch('../template.html?t=' + Date.now());
+        if(!templateRes.ok) templateRes = await fetch('template.html?t=' + Date.now()); // fallback
         let html = await templateRes.text();
 
-        // 3. Generate HTML
+        // 3. Prepare HTML Content
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
@@ -236,12 +217,17 @@
         const checkPage = await fetch(pageUrl, { headers });
         if(checkPage.ok) pageSha = (await checkPage.json()).sha;
 
-        await fetch(pageUrl, {
+        const pageRes = await fetch(pageUrl, {
           method: 'PUT', headers,
           body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
         });
 
-        // 5. Update Database (datas/database.json)
+        if(!pageRes.ok) {
+          const err = await pageRes.json();
+          throw new Error(`Page Save Failed: ${err.message}`);
+        }
+
+        // 5. Update Database
         const dbUrl = `${baseApi}/datas/database.json`;
         let dbRes = await fetch(dbUrl, { headers });
         
@@ -286,7 +272,7 @@
       n.className = `notif ${type}`;
       n.innerText = msg;
       n.style.display = 'block';
-      setTimeout(() => n.style.display = 'none', 5000);
+      setTimeout(() => n.style.display = 'none', 7000);
     }
   </script>
 </body>
