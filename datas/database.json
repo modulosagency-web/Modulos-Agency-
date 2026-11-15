@@ -1,0 +1,10 @@
+{
+  "admin": {
+    "username": "admin",
+    "password": "admin@10M123",
+    "github_token": "ghp_YOUR_GITHUB_TOKEN_HERE",
+    "github_owner": "modulosager",
+    "github_repo": "Modulos-Agency-"
+  },
+  "businesses": []
+}
