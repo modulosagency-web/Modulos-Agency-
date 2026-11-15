@@ -3,164 +3,288 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modulos Admin</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <title>Modulos Admin Generator</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    body { font-family: 'Inter', sans-serif; background: #0f172a; color: white; min-height: 100vh; padding: 20px; }
-    .card { background: #1e293b; border-radius: 16px; padding: 24px; max-width: 800px; margin: 0 auto; }
-    h2 { margin-bottom: 20px; }
-    input, textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #334155; background: #0f172a; color: white; margin-bottom: 12px; }
-    button { padding: 12px 24px; background: #0047b3; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Plus Jakarta Sans', sans-serif; background: #0f172a; color: #f8fafc; padding: 20px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: #1e293b; padding: 24px; border-radius: 16px; margin-bottom: 20px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.3); }
+    h2 { margin-bottom: 20px; font-weight: 700; font-size: 1.4rem; color: #60a5fa; display: flex; align-items: center; gap: 10px; }
+    
+    .form-group { margin-bottom: 15px; }
+    label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 6px; font-weight: 500; }
+    input { width: 100%; padding: 12px 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: white; font-family: inherit; font-size: 0.95rem; }
+    input:focus { outline: none; border-color: #60a5fa; }
+    
+    .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .file-input-wrapper { border: 1px dashed #475569; padding: 15px; border-radius: 10px; text-align: center; cursor: pointer; background: rgba(15, 23, 42, 0.5); }
+    .file-input-wrapper input { display: none; }
+    .file-input-wrapper label { cursor: pointer; color: #60a5fa; font-weight: 600; margin: 0; font-size: 0.9rem; }
+    
+    button { padding: 14px; width: 100%; background: #0047b3; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 1rem; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; }
     button:hover { background: #003385; }
-    .list-item { background: #0f172a; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
-    .notif { padding: 12px; border-radius: 8px; margin-bottom: 15px; display: none; }
-    .notif.success { background: rgba(16,185,129,0.2); color: #10b981; display: block; }
-    .notif.error { background: rgba(239,68,68,0.2); color: #ef4444; display: block; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    button:disabled { opacity: 0.7; cursor: not-allowed; }
+    
+    .notif { padding: 14px; border-radius: 10px; margin-bottom: 20px; display: none; font-weight: 600; font-size: 0.9rem; }
+    .notif.success { background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid #10b981; display: block; }
+    .notif.error { background: rgba(239, 68, 68, 0.2); color: #ef4444; border: 1px solid #ef4444; display: block; }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h2>Modulos Dashboard</h2>
-    <div id="notif" class="notif"></div>
-    
-    <div id="loginBox">
-      <h3>Admin Login</h3>
-      <input type="text" id="u" placeholder="Username">
-      <input type="password" id="p" placeholder="Password">
-      <button onclick="doLogin()" id="loginBtn">Sign In</button>
+
+  <div class="container">
+    <!-- Login Card -->
+    <div class="card" id="loginCard">
+      <h2><i class="fas fa-lock"></i> Admin Login</h2>
+      <div id="notif" class="notif"></div>
+      <div class="form-group">
+        <label>Username</label>
+        <input type="text" id="u" placeholder="Enter username">
+      </div>
+      <div class="form-group">
+        <label>Password</label>
+        <input type="password" id="p" placeholder="Enter password">
+      </div>
+      <button onclick="doLogin()">Sign In</button>
     </div>
 
-    <div id="dashboardBox" style="display: none;">
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <h3>Add Business</h3>
-        <button onclick="logout()" style="background: #ef4444; padding: 8px 12px; font-size: 0.8rem;">Logout</button>
+    <!-- Generator Card -->
+    <div class="card" id="addCard" style="display: none;">
+      <h2><i class="fas fa-magic"></i> Generate Business Page</h2>
+      <div id="notif2" class="notif"></div>
+      
+      <div class="row">
+        <div class="form-group">
+          <label>Business ID *</label>
+          <input type="text" id="bizId" placeholder="e.g. 8383">
+        </div>
+        <div class="form-group">
+          <label>Business Name *</label>
+          <input type="text" id="bizName" placeholder="e.g. Cafe Coffee Day">
+        </div>
       </div>
       
-      <input type="text" id="bId" placeholder="Business ID (e.g. 12345)">
-      <input type="text" id="bName" placeholder="Business Name">
-      <input type="text" id="bPhone" placeholder="Phone Number">
-      <button onclick="addBusiness()" id="saveBtn">Save Business</button>
-      
-      <h3 style="margin-top: 20px;">Registered Businesses</h3>
-      <div id="list"></div>
+      <div class="form-group">
+        <label>Description</label>
+        <input type="text" id="bizDesc" placeholder="Short description...">
+      </div>
+
+      <div class="form-group">
+        <label>Upload Logo *</label>
+        <div class="file-input-wrapper">
+          <label for="bizLogoFile"><i class="fas fa-cloud-upload-alt"></i> Click to upload logo</label>
+          <input type="file" id="bizLogoFile" accept="image/*" onchange="document.getElementById('fileName').innerText = this.files[0].name">
+          <div id="fileName" style="font-size: 0.8rem; color: #94a3b8; margin-top: 8px;"></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Google Review Link</label>
+        <input type="text" id="bizRev" placeholder="https://g.page/r/...">
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Phone Number</label>
+          <input type="text" id="bizPhone" placeholder="+91...">
+        </div>
+        <div class="form-group">
+          <label>WhatsApp Number</label>
+          <input type="text" id="bizWa" placeholder="+91...">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Google Maps Link</label>
+          <input type="text" id="bizMaps" placeholder="https://maps.google.com/...">
+        </div>
+        <div class="form-group">
+          <label>Website Link</label>
+          <input type="text" id="bizWeb" placeholder="https://...">
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="form-group">
+          <label>Instagram Link</label>
+          <input type="text" id="bizInsta" placeholder="https://instagram.com/...">
+        </div>
+        <div class="form-group">
+          <label>Facebook Link</label>
+          <input type="text" id="bizFb" placeholder="https://facebook.com/...">
+        </div>
+      </div>
+
+      <button onclick="generatePage()" id="saveBtn"><i class="fas fa-rocket"></i> Generate Page & Upload</button>
     </div>
   </div>
 
   <script>
-    let dbData = null;
-    let config = null;
+    let db = null, config = null;
+    
+    // 1. Load Database
+    fetch('../json/database.json?t=' + Date.now())
+      .then(r => r.json())
+      .then(d => { db = d; config = d.admin; })
+      .catch(e => showNotif('notif', 'error', 'Error loading database.json'));
 
-    // JSON fetch function
-    async function fetchJSON(path) {
-      const res = await fetch(`../../datas/${path}?t=` + Date.now());
-      if (!res.ok) throw new Error('File not found');
-      return await res.json();
-    }
-
-    // Start: Load Database
-    async function init() {
-      try {
-        dbData = await fetchJSON('database.json');
-        config = dbData.admin;
-      } catch (e) {
-        showNotif('error', 'database.json not found! Please create it in datas folder.');
-      }
-    }
-    init();
-
+    // 2. Login Logic
     function doLogin() {
-      const u = document.getElementById('u').value;
-      const p = document.getElementById('p').value;
-
-      if (!config) return showNotif('error', 'Database not loaded.');
-
-      if (u === config.username && p === config.password) {
-        document.getElementById('loginBox').style.display = 'none';
-        document.getElementById('dashboardBox').style.display = 'block';
-        renderList();
+      if (!config) return showNotif('notif', 'error', 'Database loading... try again');
+      if (document.getElementById('u').value === config.username && document.getElementById('p').value === config.password) {
+        document.getElementById('loginCard').style.display = 'none';
+        document.getElementById('addCard').style.display = 'block';
       } else {
-        showNotif('error', 'Invalid credentials');
+        showNotif('notif', 'error', 'Invalid Credentials');
       }
     }
 
-    async function addBusiness() {
-      const id = document.getElementById('bId').value.trim();
-      const name = document.getElementById('bName').value.trim();
-      const phone = document.getElementById('bPhone').value.trim();
+    // 3. Helper: Image to Base64
+    function getBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = error => reject(error);
+      });
+    }
 
-      if (!id || !name) return showNotif('error', 'ID and Name required');
-      if (!config.github_token) return showNotif('error', 'GitHub Token missing in database.json');
-
+    // ==========================================
+    // 4. MAIN GENERATOR ENGINE
+    // ==========================================
+    async function generatePage() {
       const btn = document.getElementById('saveBtn');
-      btn.innerText = 'Saving...'; btn.disabled = true;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+      btn.disabled = true;
 
-      const newBusiness = { businessId: id, businessName: name, phone: phone, createdAt: new Date().toISOString() };
+      // Input values
+      const id = document.getElementById('bizId').value.trim();
+      const name = document.getElementById('bizName').value.trim();
+      const desc = document.getElementById('bizDesc').value;
+      const phone = document.getElementById('bizPhone').value;
+      const wa = document.getElementById('bizWa').value;
+      const rev = document.getElementById('bizRev').value;
+      const maps = document.getElementById('bizMaps').value;
+      const web = document.getElementById('bizWeb').value;
+      const insta = document.getElementById('bizInsta').value;
+      const fb = document.getElementById('bizFb').value;
+      
+      const logoFile = document.getElementById('bizLogoFile').files[0];
+
+      if(!id || !name) {
+        showNotif('notif2', 'error', 'ID and Name are required!');
+        btn.innerHTML = '<i class="fas fa-rocket"></i> Generate Page & Upload';
+        btn.disabled = false;
+        return;
+      }
+
+      const baseApi = `https://api.github.com/repos/${config.github_owner}/${config.github_repo}/contents`;
+      const headers = { 'Authorization': `token ${config.github_token}`, 'Accept': 'application/vnd.github.v3+json' };
 
       try {
-        // 1. Get latest file SHA from GitHub
-        const getUrl = `https://api.github.com/repos/${config.github_owner}/${config.github_repo}/contents/datas/database.json`;
-        const getRes = await fetch(getUrl, {
-          headers: { 'Authorization': `token ${config.github_token}` }
-        });
-        const getData = await getRes.json();
-        
-        // 2. Update data
-        dbData.businesses.push(newBusiness);
-        const newContent = btoa(unescape(encodeURIComponent(JSON.stringify(dbData, null, 2))));
+        // A. Upload Logo (Agar upload kiya hai)
+        if(logoFile) {
+          const base64Logo = await getBase64(logoFile);
+          const logoUrl = `${baseApi}/nfcbusinesscp/${id}/logo.png`;
+          
+          // Check if logo exists (to get SHA for overwrite)
+          let sha = null;
+          const checkRes = await fetch(logoUrl, { headers });
+          if(checkRes.ok) sha = (await checkRes.json()).sha;
 
-        // 3. Push to GitHub
-        const putRes = await fetch(getUrl, {
-          method: 'PUT',
-          headers: { 
-            'Authorization': `token ${config.github_token}`,
-            'Accept': 'application/vnd.github.v3+json'
-          },
-          body: JSON.stringify({
-            message: `Added business ${name}`,
-            content: newContent,
-            sha: getData.sha
+          await fetch(logoUrl, {
+            method: 'PUT', headers,
+            body: JSON.stringify({ 
+              message: `Upload Logo for ${id}`, 
+              content: base64Logo,
+              ...(sha && { sha })
+            })
+          });
+        }
+
+        // B. Fetch Master Template
+        const templateRes = await fetch('../../template.html?t=' + Date.now());
+        let html = await templateRes.text();
+
+        // C. Generate Buttons HTML
+        const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
+        const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
+        const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
+        const mapsBtn = maps ? `<a href="${maps}" class="btn btn-map" target="_blank"><i class="fas fa-map-marker-alt"></i> Maps</a>` : '';
+        const webBtn = web ? `<a href="${web}" class="btn btn-web" target="_blank"><i class="fas fa-globe"></i> Website</a>` : '';
+        
+        let socialLinks = '';
+        if(insta) socialLinks += `<a href="${insta}" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>`;
+        if(fb) socialLinks += `<a href="${fb}" class="social-icon" target="_blank"><i class="fab fa-facebook-f"></i></a>`;
+
+        // D. Replace Placeholders
+        html = html.replace(/{{NAME}}/g, name)
+                   .replace(/{{DESC}}/g, desc || 'Welcome to our business.')
+                   .replace(/{{LOGO}}/g, 'logo.png')
+                   .replace(/{{REVIEW_BTN}}/g, reviewBtn)
+                   .replace(/{{CALL_BTN}}/g, callBtn)
+                   .replace(/{{WA_BTN}}/g, waBtn)
+                   .replace(/{{MAPS_BTN}}/g, mapsBtn)
+                   .replace(/{{WEB_BTN}}/g, webBtn)
+                   .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
+
+        // E. Save Index.html to GitHub
+        const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
+        
+        // Check if page exists (to get SHA)
+        let pageSha = null;
+        const checkPage = await fetch(pageUrl, { headers });
+        if(checkPage.ok) pageSha = (await checkPage.json()).sha;
+
+        await fetch(pageUrl, {
+          method: 'PUT', headers,
+          body: JSON.stringify({ 
+            message: `Generate Page for ${id}`, 
+            content: btoa(unescape(encodeURIComponent(html))),
+            ...(pageSha && { sha: pageSha })
           })
         });
 
-        if (!putRes.ok) throw new Error('Failed to save to GitHub');
-
-        showNotif('success', 'Business saved successfully to GitHub!');
-        renderList();
+        // F. Update Master JSON Database
+        const dbUrl = `${baseApi}/json/database.json`;
+        const dbRes = await fetch(dbUrl, { headers });
+        const dbData = await dbRes.json();
         
-        // Clear form
-        document.getElementById('bId').value = '';
-        document.getElementById('bName').value = '';
-        document.getElementById('bPhone').value = '';
+        // Add or update in array
+        const newBiz = { id, name, phone, wa, rev, maps, web, insta, fb };
+        const existingIdx = db.businesses.findIndex(b => b.id === id);
+        if(existingIdx >= 0) db.businesses[existingIdx] = newBiz;
+        else db.businesses.push(newBiz);
 
-      } catch (err) {
-        showNotif('error', 'Error: ' + err.message);
+        await fetch(dbUrl, {
+          method: 'PUT', headers,
+          body: JSON.stringify({ 
+            message: `Update DB for ${id}`, 
+            content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), 
+            sha: dbData.sha 
+          })
+        });
+
+        showNotif('notif2', 'success', `Success! Page generated for ID: ${id}`);
+        document.getElementById('bizId').value = '';
+        document.getElementById('bizName').value = '';
+
+      } catch(e) { 
+        showNotif('notif2', 'error', 'Error: ' + e.message); 
       } finally {
-        btn.innerText = 'Save Business'; btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-rocket"></i> Generate Page & Upload';
+        btn.disabled = false;
       }
     }
 
-    function renderList() {
-      const list = document.getElementById('list');
-      if (!dbData || !dbData.businesses || dbData.businesses.length === 0) {
-        list.innerHTML = '<p style="color:#94a3b8;">No businesses yet.</p>';
-        return;
-      }
-      list.innerHTML = dbData.businesses.map(b => `
-        <div class="list-item">
-          <div><strong>${b.businessName}</strong> (ID: ${b.businessId})</div>
-        </div>
-      `).join('');
-    }
-
-    function logout() {
-      location.reload();
-    }
-
-    function showNotif(type, msg) {
-      const n = document.getElementById('notif');
+    function showNotif(id, type, msg) {
+      const n = document.getElementById(id);
       n.className = `notif ${type}`;
       n.innerText = msg;
+      n.style.display = 'block';
       setTimeout(() => n.style.display = 'none', 5000);
     }
   </script>
