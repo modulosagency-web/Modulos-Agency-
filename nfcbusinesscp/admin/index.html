@@ -89,27 +89,28 @@
     let db = null, config = null;
 
     // =======================================================
-    // YAHAN AAPKA NAYA TOKEN DAALA GAYA HAI
+    // SETUP DETAILS
     // =======================================================
     const CONFIG = {
       username: "admin",
       password: "admin@10M123",
-      github_token: "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",
-      github_owner: "modulosager",
+      github_token: "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", 
+      github_owner: "modulosagency-web", 
       github_repo: "Modulos-Agency-"
     };
     // =======================================================
 
     async function init() {
-      const url = `https://api.github.com/repos/modulosager/Modulos-Agency-/contents/datas/database.json?t=` + Date.now();
+      const url = `https://api.github.com/repos/${CONFIG.github_owner}/${CONFIG.github_repo}/contents/datas/database.json?t=` + Date.now();
       try {
         const res = await fetch(url, { headers: { 'Authorization': `token ${CONFIG.github_token}` } });
         if (res.ok) {
           const fileData = await res.json();
           const decodedContent = decodeURIComponent(escape(atob(fileData.content)));
           db = JSON.parse(decodedContent);
-          config = db.admin; // Agar database.json mein token purana hai, toh use override karein
-          config.github_token = CONFIG.github_token; 
+          config = db.admin; 
+          config.github_token = CONFIG.github_token; // Force new token
+          config.github_owner = CONFIG.github_owner; // Force correct owner
         } else {
           config = CONFIG;
           db = { businesses: [] };
@@ -183,15 +184,15 @@
             method: 'PUT', headers,
             body: JSON.stringify({ message: `Logo for ${id}`, content: base64Logo, ...(sha && { sha }) })
           });
-          if(!uploadRes.ok) throw new Error("Logo upload failed. Check Token permissions.");
+          if(!uploadRes.ok) throw new Error("Logo upload failed. Check Token.");
         }
 
-        // 2. Fetch Template
-        let templateRes = await fetch('../template.html?t=' + Date.now());
-        if(!templateRes.ok) templateRes = await fetch('template.html?t=' + Date.now()); // fallback
+        // 2. Fetch Master Template
+        let templateRes = await fetch(`https://raw.githubusercontent.com/${config.github_owner}/${config.github_repo}/main/template.html?t=` + Date.now());
+        if(!templateRes.ok) throw new Error("Template load nahi hua. Check karein ki template.html root mein hai.");
         let html = await templateRes.text();
 
-        // 3. Prepare HTML Content
+        // 3. Replace Data in Template
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
@@ -221,11 +222,7 @@
           method: 'PUT', headers,
           body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
         });
-
-        if(!pageRes.ok) {
-          const err = await pageRes.json();
-          throw new Error(`Page Save Failed: ${err.message}`);
-        }
+        if(!pageRes.ok) throw new Error("Page save nahi hua. Check Token permissions.");
 
         // 5. Update Database
         const dbUrl = `${baseApi}/datas/database.json`;
@@ -248,11 +245,7 @@
 
         await fetch(dbUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ 
-            message: `Update DB for ${id}`, 
-            content: btoa(unescape(encodeURIComponent(JSON.stringify(currentDb, null, 2)))), 
-            ...(dbSha && { sha: dbSha })
-          })
+          body: JSON.stringify({ message: `Update DB for ${id}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(currentDb, null, 2)))), ...(dbSha && { sha: dbSha }) })
         });
 
         showNotif('notif2', 'success', `Success! Page generated for ID: ${id}`);
@@ -260,7 +253,7 @@
         document.getElementById('bizName').value = '';
 
       } catch(e) { 
-        showNotif('notif2', 'error', 'Error: ' + e.message); 
+        showNotif('notif2', 'error', e.message); 
       } finally {
         btn.innerHTML = '<i class="fas fa-rocket"></i> Generate Page & Upload';
         btn.disabled = false;
