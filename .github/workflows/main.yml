@@ -1,1 +1,101 @@
 
+name: Modulos Master Backend
+
+on:
+  repository_dispatch:
+    types: [modulos-action]
+
+# 🔒 CONCURRENCY LOCK: Ek time par sirf ek hi action chalega. 
+# Agar naya aaya, toh purana wala (agar atka hua hai) force kill ho jayega.
+concurrency:
+  group: modulos-master-lock
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  handle_all_actions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GMT }}
+          fetch-depth: 1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Extract Payload Data
+        id: payload
+        env:
+          PAYLOAD: ${{ toJSON(github.event.client_payload) }}
+        run: |
+          echo "$PAYLOAD" > /tmp/payload.json
+          ACTION=$(node -e "console.log(require('/tmp/payload.json').action || '')")
+          REQ_ID=$(node -e "console.log(require('/tmp/payload.json').request_id || '')")
+          echo "action=$ACTION" >> $GITHUB_OUTPUT
+          echo "req_id=$REQ_ID" >> $GITHUB_OUTPUT
+          echo "Processing Action: $ACTION | Request ID: $REQ_ID"
+
+      - name: Execute Backend Logic
+        id: handler
+        env:
+          ACTION: ${{ steps.payload.outputs.action }}
+          ADMIN_USER: ${{ secrets.ADMIN_USER }}
+          ADMIN_PASS: ${{ secrets.ADMIN_PASS }}
+        run: |
+          node scripts/helpers.js "$ACTION"
+
+      - name: Commit Changes to Database
+        if: steps.handler.outputs.changed == 'true'
+        run: |
+          git config user.name "Modulos Bot"
+          git config user.email "bot@modulos.in"
+          git add datas/ nfcbusinesscp/
+          git commit -m "Modulos: ${{ steps.payload.outputs.action }} — ${{ steps.payload.outputs.req_id }}" || echo "No changes to commit"
+          git push
+
+      - name: Write Result Log
+        if: always()
+        env:
+          REQ_ID: ${{ steps.payload.outputs.req_id }}
+          SUCCESS: ${{ steps.handler.outputs.success }}
+          MESSAGE: ${{ steps.handler.outputs.message }}
+          TOKEN: ${{ steps.handler.outputs.token }}
+          EXPIRES: ${{ steps.handler.outputs.expires }}
+        run: |
+          mkdir -p datas/results
+          if [ "$SUCCESS" = "true" ]; then
+            node -e "
+              const fs = require('fs');
+              const result = { success: true, message: process.env.MESSAGE || 'OK', token: process.env.TOKEN || '', expires: process.env.EXPIRES || '0', timestamp: Date.now() };
+              fs.writeFileSync('datas/results/' + process.env.REQ_ID + '.json', JSON.stringify(result));
+            "
+          else
+            node -e "
+              const fs = require('fs');
+              const result = { success: false, error: process.env.MESSAGE || 'Operation failed', timestamp: Date.now() };
+              fs.writeFileSync('datas/results/' + process.env.REQ_ID + '.json', JSON.stringify(result));
+            "
+          fi
+
+      - name: Commit Result
+        if: always()
+        run: |
+          git config user.name "Modulos Bot"
+          git config user.email "bot@modulos.in"
+          git add datas/results/
+          git commit -m "Result: ${{ steps.payload.outputs.req_id }}" || echo "No result to commit"
+          git push || true
+
+      - name: Cleanup Old Results (Prevent Repo Bloat)
+        if: always()
+        run: |
+          find datas/results -name "*.json" -mmin +60 -delete 2>/dev/null || true
+          git add datas/results/ 2>/dev/null || true
+          git diff --staged --quiet || git commit -m "Auto-cleanup old logs"
+          git push || true
