@@ -3,15 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Modulos Admin</title>
+  <title>Modulos Admin Dashboard</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { font-family: 'Inter', sans-serif; background: #0f172a; color: #f8fafc; min-height: 100vh; padding: 20px; }
-    .container { max-width: 1000px; margin: 0 auto; }
+    .container { max-width: 1100px; margin: 0 auto; }
     .card { background: #1e293b; border-radius: 16px; padding: 24px; margin-bottom: 16px; }
-    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; font-size: 0.9rem; }
+    .btn { padding: 10px 18px; border-radius: 10px; border: none; cursor: pointer; font-weight: 600; font-family: inherit; font-size: 0.9rem; transition: 0.2s; }
     .btn-primary { background: #0047b3; color: white; }
     .btn-primary:hover { background: #003385; }
     .btn-danger { background: #ef4444; color: white; }
@@ -39,56 +39,49 @@
     // ==== CONFIG ====
     const CONFIG = {
       owner: 'modulosager',
-      repo: 'Modulos-Agency-', // Apna exact repo name daalein
+      repo: 'Modulos-Agency-'
     };
 
     const state = {
       token: sessionStorage.getItem('modulos_token') || null,
-      expires: parseInt(sessionStorage.getItem('modulos_expires') || '0', 10),
       businesses: []
     };
 
-    // GitHub Issue banane ka function
-    async function dispatch(action, extra = {}) {
+    // 🌟 NAYA METHOD: Issue banakar server ko request bhejna
+    async function askServer(action, extra = {}) {
       const payload = { action, request_id: crypto.randomUUID(), ...extra };
       
       const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues`, {
         method: 'POST',
-        headers: { 
-          'Accept': 'application/vnd.github+json',
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Accept': 'application/vnd.github+json', 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          title: `[MODULOS-ACTION] ${action} - ${payload.request_id}`,
-          body: JSON.stringify(payload)
+          title: `[MODULOS-API] ${action} - ${payload.request_id}`,
+          body: JSON.stringify(payload) 
         }),
       });
       
       if (!res.ok) throw new Error(`Request failed: ${res.status}`);
       const issue = await res.json();
-      return { requestId: payload.request_id, issueNumber: issue.number };
+      return issue.number;
     }
 
-    // Result ke liye Issue ke comments check karna
-    async function pollResult(requestId, issueNumber, timeoutMs = 90000) {
+    // 🌟 NAYA METHOD: Server ke reply ka wait karna
+    async function waitForReply(issueNumber) {
       const start = Date.now();
-      while (Date.now() - start < timeoutMs) {
+      while (Date.now() - start < 60000) { // 60 seconds timeout
         try {
           const res = await fetch(`https://api.github.com/repos/${CONFIG.owner}/${CONFIG.repo}/issues/${issueNumber}/comments`);
           if (res.ok) {
             const comments = await res.json();
             if (comments.length > 0) {
-              const lastComment = comments[comments.length - 1].body;
-              const jsonMatch = lastComment.match(/```json\n([\s\S]*?)\n```/);
-              if (jsonMatch) {
-                return JSON.parse(jsonMatch[1]);
-              }
+              const match = comments[0].body.match(/```json\n([\s\S]*?)\n```/);
+              if (match) return JSON.parse(match[1]);
             }
           }
         } catch (_) {}
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 2000)); // Har 2 sec mein check
       }
-      return { success: false, error: 'Timeout — check GitHub Issues' };
+      throw new Error('Timeout: Server ne reply nahi kiya');
     }
 
     async function loadBusinesses() {
@@ -101,12 +94,10 @@
       } catch (_) {}
     }
 
+    // ================= UI RENDER =================
     function render() {
       const app = document.getElementById('app');
-      if (!state.token || state.expires * 1000 < Date.now()) {
-        state.token = null; sessionStorage.clear();
-        return app.innerHTML = renderLogin();
-      }
+      if (!state.token) return app.innerHTML = renderLogin();
       app.innerHTML = renderDashboard();
       attachEvents();
     }
@@ -121,7 +112,7 @@
           <input id="username" autocomplete="username">
           <label>Password</label>
           <input id="password" type="password" autocomplete="current-password">
-          <button class="btn btn-primary" style="width:100%;" id="loginBtn">Sign In</button>
+          <button class="btn btn-primary" style="width:100%; justify-content:center;" id="loginBtn" onclick="doLogin()">Sign In</button>
         </div>
       `;
     }
@@ -159,44 +150,42 @@
             <div class="id">ID: ${b.businessId}</div>
           </div>
           <button class="btn btn-sm btn-primary" onclick="window.open('/Modulos-Agency-/nfcbusinesscp/${b.businessId}/', '_blank')">View</button>
-          <button class="btn btn-sm btn-primary" onclick="showEdit('${b.businessId}')">Edit</button>
-          <button class="btn btn-sm btn-danger" onclick="delBiz('${b.businessId}')">Delete</button>
         </div>
       `).join('');
     }
 
-    function renderForm(mode, b = {}) {
+    function renderForm() {
       return `
         <div class="card" style="margin-top:16px;">
-          <h2 style="margin-bottom:16px;">${mode === 'add' ? 'Add Business' : 'Edit Business'}</h2>
-          ${mode === 'add' ? `
-            <label>QR URL</label>
-            <input id="f-qrUrl" value="${b.qrUrl || ''}" oninput="extractId(this.value)" placeholder="https://modulos.in/nfcbusinesscp/12345">
-            <div id="idHint" style="font-size:0.8rem; color:#94a3b8; margin-bottom:12px;"></div>
-          ` : ''}
+          <h2 style="margin-bottom:16px;">Add Business</h2>
+          <label>QR URL</label>
+          <input id="f-qrUrl" oninput="extractId(this.value)" placeholder="https://modulos.in/nfcbusinesscp/12345">
+          <div id="idHint" style="font-size:0.8rem; color:#94a3b8; margin-bottom:12px;"></div>
+          
           <div class="row">
-            <div><label>Business ID</label><input id="f-businessId" value="${b.businessId || ''}" ${mode === 'edit' ? 'readonly' : ''}></div>
-            <div><label>Business Name *</label><input id="f-businessName" value="${b.businessName || ''}"></div>
+            <div><label>Business ID</label><input id="f-businessId"></div>
+            <div><label>Business Name *</label><input id="f-businessName"></div>
           </div>
-          <label>Logo URL</label><input id="f-logo" value="${b.logo || ''}" placeholder="https://...">
-          <label>Description</label><textarea id="f-description" rows="2">${b.description || ''}</textarea>
+          <label>Logo URL</label><input id="f-logo" placeholder="https://...">
+          <label>Description</label><textarea id="f-description" rows="2"></textarea>
           <div class="row">
-            <div><label>Phone</label><input id="f-phone" value="${b.phone || ''}"></div>
-            <div><label>WhatsApp</label><input id="f-whatsapp" value="${b.whatsapp || ''}"></div>
+            <div><label>Phone</label><input id="f-phone"></div>
+            <div><label>WhatsApp</label><input id="f-whatsapp"></div>
           </div>
-          <label>Address</label><input id="f-address" value="${b.address || ''}">
+          <label>Address</label><input id="f-address">
           <div class="row">
-            <div><label>Google Maps</label><input id="f-mapsLink" value="${b.mapsLink || ''}"></div>
-            <div><label>Google Review</label><input id="f-reviewLink" value="${b.reviewLink || ''}"></div>
+            <div><label>Google Maps</label><input id="f-mapsLink"></div>
+            <div><label>Google Review</label><input id="f-reviewLink"></div>
           </div>
-          <label>Website</label><input id="f-website" value="${b.website || ''}">
+          <label>Website</label><input id="f-website">
           <div class="row">
-            <div><label>Instagram</label><input id="f-instagram" value="${b.instagram || ''}"></div>
-            <div><label>Facebook</label><input id="f-facebook" value="${b.facebook || ''}"></div>
+            <div><label>Instagram</label><input id="f-instagram"></div>
+            <div><label>Facebook</label><input id="f-facebook"></div>
           </div>
-          <label>YouTube</label><input id="f-youtube" value="${b.youtube || ''}">
+          <label>YouTube</label><input id="f-youtube">
+          
           <div style="display:flex; gap:12px; margin-top:16px;">
-            <button class="btn btn-primary" onclick="save('${mode}')" id="saveBtn">${mode === 'add' ? 'Add & Deploy' : 'Save & Deploy'}</button>
+            <button class="btn btn-primary" onclick="save()" id="saveBtn">Add & Deploy</button>
             <button class="btn" style="background:#334155; color:white;" onclick="closeForm()">Cancel</button>
           </div>
         </div>
@@ -204,34 +193,34 @@
     }
 
     function attachEvents() {
-      const loginBtn = document.getElementById('loginBtn');
-      if (loginBtn) {
-        loginBtn.onclick = doLogin;
-        document.getElementById('password').onkeydown = e => { if (e.key === 'Enter') doLogin(); };
-      }
       const search = document.getElementById('search');
       if (search) search.oninput = renderList;
       renderList();
     }
 
+    // ================= ACTIONS =================
     async function doLogin() {
       const u = document.getElementById('username').value.trim();
       const p = document.getElementById('password').value;
-      const btn = document.getElementById('loginBtn');
       if (!u || !p) return notify('error', 'Enter credentials');
+      
+      const btn = document.getElementById('loginBtn');
       btn.innerHTML = '<span class="spinner"></span> Processing...'; btn.disabled = true;
+      
       try {
-        const { requestId, issueNumber } = await dispatch('login', { username: u, password: p });
-        const result = await pollResult(requestId, issueNumber);
+        // 1. Issue banao (Server ko bolo login check kare)
+        const issueNum = await askServer('login', { username: u, password: p });
+        
+        // 2. Reply ka wait karo
+        const result = await waitForReply(issueNum);
+        
         if (result.success) {
           state.token = result.token;
-          state.expires = parseInt(result.expires);
           sessionStorage.setItem('modulos_token', result.token);
-          sessionStorage.setItem('modulos_expires', result.expires);
           await loadBusinesses();
           render();
         } else {
-          notify('error', result.error || 'Login failed');
+          notify('error', result.error || 'Invalid credentials');
           btn.innerHTML = 'Sign In'; btn.disabled = false;
         }
       } catch (e) {
@@ -240,8 +229,7 @@
     }
 
     function logout() { state.token = null; sessionStorage.clear(); render(); }
-    function showAdd() { document.getElementById('modal').innerHTML = renderForm('add'); }
-    function showEdit(id) { const b = state.businesses.find(x => x.businessId === id); if (b) document.getElementById('modal').innerHTML = renderForm('edit', b); }
+    function showAdd() { document.getElementById('modal').innerHTML = renderForm(); }
     function closeForm() { document.getElementById('modal').innerHTML = ''; }
 
     function extractId(url) {
@@ -258,38 +246,31 @@
         description: get('description'), phone: get('phone'), whatsapp: get('whatsapp'),
         address: get('address'), mapsLink: get('mapsLink'), reviewLink: get('reviewLink'),
         website: get('website'), instagram: get('instagram'), facebook: get('facebook'),
-        youtube: get('youtube'), qrUrl: `https://modulos.in/nfcbusinesscp/${get('businessId')}`,
+        youtube: get('youtube'), qrUrl: `https://modulos.in/nfcbusinesscp/${get('businessId')}`
       };
     }
 
-    async function save(mode) {
+    async function save() {
       const business = collectForm();
       if (!business.businessId || !business.businessName) return notify('error', 'ID and Name required');
+      
       const btn = document.getElementById('saveBtn');
-      btn.innerHTML = '<span class="spinner"></span> Processing...'; btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span> Deploying...'; btn.disabled = true;
+      
       try {
-        const { requestId, issueNumber } = await dispatch(mode === 'add' ? 'add' : 'edit', { auth_token: state.token, business });
-        const result = await pollResult(requestId, issueNumber);
+        const issueNum = await askServer('add', { auth_token: state.token, business });
+        const result = await waitForReply(issueNum);
+        
         if (result.success) {
-          notify('success', 'Success! Deploying in 30-60s.');
+          notify('success', 'Success! GitHub deploying... (Wait 30s)');
           closeForm(); await loadBusinesses(); renderList();
         } else {
           notify('error', result.error || 'Failed');
-          btn.innerHTML = mode === 'add' ? 'Add & Deploy' : 'Save & Deploy'; btn.disabled = false;
+          btn.innerHTML = 'Add & Deploy'; btn.disabled = false;
         }
       } catch (e) {
-        notify('error', e.message); btn.innerHTML = mode === 'add' ? 'Add & Deploy' : 'Save & Deploy'; btn.disabled = false;
+        notify('error', e.message); btn.innerHTML = 'Add & Deploy'; btn.disabled = false;
       }
-    }
-
-    async function delBiz(id) {
-      if (!confirm(`Delete business ${id}? This cannot be undone.`)) return;
-      try {
-        const { requestId, issueNumber } = await dispatch('delete', { auth_token: state.token, businessId: id });
-        const result = await pollResult(requestId, issueNumber);
-        if (result.success) { notify('success', 'Deleted successfully'); await loadBusinesses(); renderList(); }
-        else notify('error', result.error || 'Failed');
-      } catch (e) { notify('error', e.message); }
     }
 
     function notify(type, msg) {
