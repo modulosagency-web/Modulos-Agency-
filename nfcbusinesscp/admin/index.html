@@ -125,9 +125,7 @@
   <script>
     let db = null, config = null;
     
-    // ==========================================
-    // LOAD DATABASE (Exact GitHub Path)
-    // ==========================================
+    // 1. Load Database (Exact Path: datas/database.json)
     async function loadDB() {
       const githubRawUrl = `https://raw.githubusercontent.com/modulosager/Modulos-Agency-/main/datas/database.json?t=` + Date.now();
       
@@ -141,7 +139,7 @@
       return null;
     }
 
-    // App Start
+    // 2. App Start
     async function init() {
       db = await loadDB();
       if (db) {
@@ -149,13 +147,13 @@
         document.getElementById('notif').style.display = 'none';
       } else {
         document.getElementById('notif').className = 'notif error';
-        document.getElementById('notif').innerText = 'Error: datas/database.json nahi mili. Path check karein.';
+        document.getElementById('notif').innerText = 'Error: datas/database.json nahi mili. Check if file exists.';
         document.getElementById('notif').style.display = 'block';
       }
     }
     init();
 
-    // Login Logic
+    // 3. Login Logic
     function doLogin() {
       if (!config) return alert('Database load nahi hui. Page refresh karein.');
       if (document.getElementById('u').value === config.username && document.getElementById('p').value === config.password) {
@@ -168,6 +166,7 @@
       }
     }
 
+    // 4. Helper: Image to Base64
     function getBase64(file) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -178,7 +177,7 @@
     }
 
     // ==========================================
-    // GENERATOR ENGINE
+    // 5. MAIN GENERATOR ENGINE
     // ==========================================
     async function generatePage() {
       const btn = document.getElementById('saveBtn');
@@ -209,35 +208,42 @@
       const headers = { 'Authorization': `token ${config.github_token}`, 'Accept': 'application/vnd.github.v3+json' };
 
       try {
-        // 1. Logo Upload
+        // A. Upload Logo (Agar upload kiya hai)
         if(logoFile) {
           const base64Logo = await getBase64(logoFile);
           const logoUrl = `${baseApi}/nfcbusinesscp/${id}/logo.png`;
+          
           let sha = null;
           const checkRes = await fetch(logoUrl, { headers });
           if(checkRes.ok) sha = (await checkRes.json()).sha;
 
           await fetch(logoUrl, {
             method: 'PUT', headers,
-            body: JSON.stringify({ message: `Logo for ${id}`, content: base64Logo, ...(sha && { sha }) })
+            body: JSON.stringify({ 
+              message: `Upload Logo for ${id}`, 
+              content: base64Logo,
+              ...(sha && { sha })
+            })
           });
         }
 
-        // 2. Template Fetch
+        // B. Fetch Master Template
         let templateRes = await fetch('/template.html?t=' + Date.now());
         if(!templateRes.ok) templateRes = await fetch('../template.html?t=' + Date.now());
         let html = await templateRes.text();
 
-        // 3. Generate HTML Content
+        // C. Generate Buttons HTML
         const reviewBtn = rev ? `<a href="${rev}" class="btn-review" target="_blank"><i class="fab fa-google"></i> Leave a Google Review</a>` : '';
         const callBtn = phone ? `<a href="tel:${phone}" class="btn btn-call"><i class="fas fa-phone"></i> Call Now</a>` : '';
         const waBtn = wa ? `<a href="https://wa.me/${wa}" class="btn btn-wa" target="_blank"><i class="fab fa-whatsapp"></i> WhatsApp</a>` : '';
         const mapsBtn = maps ? `<a href="${maps}" class="btn btn-map" target="_blank"><i class="fas fa-map-marker-alt"></i> Maps</a>` : '';
         const webBtn = web ? `<a href="${web}" class="btn btn-web" target="_blank"><i class="fas fa-globe"></i> Website</a>` : '';
+        
         let socialLinks = '';
         if(insta) socialLinks += `<a href="${insta}" class="social-icon" target="_blank"><i class="fab fa-instagram"></i></a>`;
         if(fb) socialLinks += `<a href="${fb}" class="social-icon" target="_blank"><i class="fab fa-facebook-f"></i></a>`;
 
+        // D. Replace Placeholders
         html = html.replace(/{{NAME}}/g, name)
                    .replace(/{{DESC}}/g, desc || 'Welcome to our business.')
                    .replace(/{{LOGO}}/g, 'logo.png')
@@ -248,18 +254,23 @@
                    .replace(/{{WEB_BTN}}/g, webBtn)
                    .replace(/{{SOCIAL_LINKS}}/g, socialLinks);
 
-        // 4. Save index.html
+        // E. Save Index.html to GitHub
         const pageUrl = `${baseApi}/nfcbusinesscp/${id}/index.html`;
+        
         let pageSha = null;
         const checkPage = await fetch(pageUrl, { headers });
         if(checkPage.ok) pageSha = (await checkPage.json()).sha;
 
         await fetch(pageUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ message: `Generate Page for ${id}`, content: btoa(unescape(encodeURIComponent(html))), ...(pageSha && { sha: pageSha }) })
+          body: JSON.stringify({ 
+            message: `Generate Page for ${id}`, 
+            content: btoa(unescape(encodeURIComponent(html))),
+            ...(pageSha && { sha: pageSha })
+          })
         });
 
-        // 5. Save to datas/database.json
+        // F. Update Master JSON Database
         const dbUrl = `${baseApi}/datas/database.json`;
         const dbRes = await fetch(dbUrl, { headers });
         const dbData = await dbRes.json();
@@ -271,7 +282,11 @@
 
         await fetch(dbUrl, {
           method: 'PUT', headers,
-          body: JSON.stringify({ message: `Update DB for ${id}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), sha: dbData.sha })
+          body: JSON.stringify({ 
+            message: `Update DB for ${id}`, 
+            content: btoa(unescape(encodeURIComponent(JSON.stringify(db, null, 2)))), 
+            sha: dbData.sha 
+          })
         });
 
         showNotif('notif2', 'success', `Success! Page generated for ID: ${id}`);
