@@ -1,0 +1,5 @@
+{"rules":{
+"leads":{".read":"root.child('admins').child(auth.uid).exists()","$id":{".write":"(!data.exists() && newData.exists()) || root.child('admins').child(auth.uid).exists()",".validate":"newData.hasChildren(['name','email','service','message','status','createdAt'])"}},
+"userLeads":{"$uid":{".read":"auth.uid === $uid || root.child('admins').child(auth.uid).exists()",".write":"auth.uid === $uid || root.child('admins').child(auth.uid).exists()"}},
+"users":{"$uid":{".read":"auth.uid === $uid",".write":"auth.uid === $uid"}},
+"admins":{"$uid":{".read":"auth.uid === $uid",".write":false}}}}
