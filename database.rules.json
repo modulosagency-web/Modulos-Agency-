@@ -1,5 +1,51 @@
-{"rules":{
-"leads":{".read":"root.child('admins').child(auth.uid).exists()","$id":{".write":"(!data.exists() && newData.exists()) || root.child('admins').child(auth.uid).exists()",".validate":"newData.hasChildren(['name','email','service','message','status','createdAt'])"}},
-"userLeads":{"$uid":{".read":"auth.uid === $uid || root.child('admins').child(auth.uid).exists()",".write":"auth.uid === $uid || root.child('admins').child(auth.uid).exists()"}},
-"users":{"$uid":{".read":"auth.uid === $uid",".write":"auth.uid === $uid"}},
-"admins":{"$uid":{".read":"auth.uid === $uid",".write":false}}}}
+{
+ "rules": {
+  "stats": {
+   ".read": "auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true",
+   "visitors": {
+    ".write": "newData.isNumber() && newData.val() === (data.exists() ? data.val() + 1 : 1)"
+   }
+  },
+  "tickets": {
+   ".read": "auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true",
+   "$id": {
+    ".read": "data.child('uid').val() === auth.uid",
+    ".write": "(!data.exists() && newData.child('uid').val() === auth.uid && auth.token.email_verified === true) || (auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true)",
+    "status": {
+     ".validate": "newData.val() === 'open' || newData.val() === 'in-progress' || newData.val() === 'resolved'"
+    },
+    ".validate": "newData.hasChildren(['uid','email','service','subject','description','status','createdAt']) && newData.child('email').val() === auth.token.email && newData.child('subject').val().length <= 120 && newData.child('description').val().length <= 3000"
+   }
+  },
+  "userTickets": {
+   "$uid": {
+    ".read": "auth.uid === $uid || (auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true)",
+    "$id": {
+     ".write": "(auth.uid === $uid && !data.exists() && auth.token.email_verified === true) || (auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true)"
+    }
+   }
+  },
+  "ticketMessages": {
+   "$tid": {
+    ".read": "root.child('tickets').child($tid).child('uid').val() === auth.uid || (auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true)",
+    "$mid": {
+     ".write": "!data.exists() && newData.exists() && ((root.child('tickets').child($tid).child('uid').val() === auth.uid && root.child('tickets').child($tid).child('status').val() !== 'resolved' && auth.token.email_verified === true) || (auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true))",
+     ".validate": "newData.hasChildren(['from','uid','text','createdAt']) && newData.child('uid').val() === auth.uid && newData.child('text').val().length <= 2000 && (newData.child('from').val() === 'user' || (auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true))"
+    }
+   }
+  },
+  "contacts": {
+   ".read": "auth.token.email === 'admin@modulos.in' && auth.token.email_verified === true",
+   "$id": {
+    ".write": "!data.exists() && newData.child('uid').val() === auth.uid && auth.token.email_verified === true",
+    ".validate": "newData.hasChildren(['uid','email','name','message','createdAt']) && newData.child('message').val().length <= 2000"
+   }
+  },
+  "users": {
+   "$uid": {
+    ".read": "auth.uid === $uid",
+    ".write": "auth.uid === $uid"
+   }
+  }
+ }
+}
