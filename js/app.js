@@ -37,7 +37,7 @@ cf?.addEventListener('submit',async e=>{
   try{
     await set(push(ref(db,'contacts')),{uid:user.uid,email:user.email,name:cf.name.value.trim().slice(0,100),phone:cf.phone.value.trim().slice(0,30),message:cf.message.value.trim().slice(0,2000),createdAt:Date.now()});
     cf.reset();toast('Message sent! We will reply by email within 24 hours.');
-  }catch{toast('Could not send. Email support@modulos.in',false)}
+  }catch(err){console.error(err);toast('Could not send: '+(err.code||err.message),false)}
   btn.disabled=false;
 });
 
@@ -109,12 +109,12 @@ function initDash(u){
       await update(ref(db),{['tickets/'+id]:{uid:u.uid,email:u.email,service,subject,description,status:'open',createdAt:now},[`userTickets/${u.uid}/${id}`]:{service,subject,status:'open',createdAt:now}});
       await sendMsg(id,'user',u.uid,description);
       tf.reset();toast('Ticket raised! You can chat with us here.');open(id);
-    }catch{toast('Could not raise ticket. Try again.',false)}
+    }catch(err){console.error('Ticket error:',err);toast('Could not raise ticket: '+(err.code||err.message),false)}
     btn.disabled=false;
   };
   $('#msgForm').onsubmit=async e=>{
     e.preventDefault();const i=$('#msgText'),text=i.value.trim();if(!text||!cur)return;i.value='';
-    try{await sendMsg(cur,'user',u.uid,text)}catch{toast('Message not sent.',false);i.value=text}
+    try{await sendMsg(cur,'user',u.uid,text)}catch(err){console.error(err);toast('Message not sent: '+(err.code||err.message),false);i.value=text}
   };
 }
 
@@ -143,7 +143,7 @@ function initAdmin(u){
   $('#msgForm').onsubmit=async e=>{
     e.preventDefault();const i=$('#msgText'),text=i.value.trim();if(!text||!cur)return;i.value='';
     try{await sendMsg(cur,'admin',u.uid,text);if(tickets[cur].status==='open')await setStatus(cur,'in-progress')}
-    catch{toast('Message not sent.',false);i.value=text}
+    catch(err){console.error(err);toast('Message not sent: '+(err.code||err.message),false);i.value=text}
   };
   onValue(ref(db,'contacts'),s=>{
     const rows=Object.values(s.val()||{}).sort((a,b)=>b.createdAt-a.createdAt);$('#sc').textContent=rows.length;
